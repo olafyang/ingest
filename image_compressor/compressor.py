@@ -1,6 +1,4 @@
-from pickletools import optimize
 from PIL import Image
-from typing import Optional
 import sys
 import os
 import re

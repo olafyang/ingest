@@ -18,7 +18,7 @@ if __name__ == "__main__":
         quality = int(match["QUAL"]) if match["QUAL"] is not None else quality
         resize_x = int(match["X"]) if match["X"] is not None else None
         file_in = match["IN"]
-        filename_clean = file_in.split(".")[-2].replace("/", "")
+        filename_clean = os.path.basename(file_in).split(".")[0]
     except AttributeError:
         sys.stderr.write("Error in arguments")
 
@@ -38,3 +38,4 @@ if __name__ == "__main__":
         img = img.resize(new_dimension, Image.ANTIALIAS)
 
     img.save(file_out, quality=quality, optimize=True)
+    print(f"{filename_clean}-q{quality}.{out_type}")

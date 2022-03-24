@@ -35,6 +35,9 @@ def run_tests():
     print("Testing format and size change")
     os.system(f"python3 compressor.py -t png -x 1000 {testdir}/test.png")
 
+    print("Testing S3 Upload")
+    os.system(f"python3 compressor.py -t png -x 1000 -u ipque-test {testdir}/test.png")
+
 
 if __name__ == "__main__":
     remove_test()

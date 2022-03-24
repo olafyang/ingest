@@ -1,6 +1,6 @@
 FROM python:latest
 
-RUN pip install Pillow
+RUN pip install Pillow, requests
 
 WORKDIR /app
 COPY compressor.py .

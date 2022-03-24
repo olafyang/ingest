@@ -1,9 +1,5 @@
-from pickletools import optimize
-from urllib import request
-from urllib.parse import urlparse
 import argparse
 import os
-import sys
 import io
 from typing import Optional, NoReturn, Union
 import boto3

@@ -1,6 +1,8 @@
 auth.txt
 *.png
 *.jpg
+__test__/
+__testout__/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -41,7 +41,7 @@ def resize(image: Image, width: int) -> Image:
     return image
 
 
-def save_io(image: Image, img_format: str = "JPEG", quality: int = 85) -> io.BytesIO:
+def save_io(image: Image.Image, img_format: str = "JPEG", quality: int = 85) -> io.BytesIO:
     """
     Save an PIL Image to bytesIO
     :param image: source image
@@ -59,6 +59,13 @@ def save_io(image: Image, img_format: str = "JPEG", quality: int = 85) -> io.Byt
 
     b.seek(0)
     return b
+
+
+def save_file(image: Image.Image, path: str):
+    if not os.path.exists(os.path.dirname(path)):
+        raise FileNotFoundError()
+
+    image.save(path)
 
 
 def upload_s3(bucket_name: str, body: Union[Image.Image, io.BytesIO], key: str, fmt: str) -> NoReturn:
@@ -96,15 +103,16 @@ if __name__ == "__main__":
         "-d", "--use-s3", help="Use a S3 bucket as image source", metavar="BUCKET NAME", dest="bucket_download")
     parser.add_argument("-u", "--upload-s3",
                         help="Upload output image to a S3 bucket", metavar="BUCKET NAME", dest="bucket_upload")
+    parser.add_argument("-o", "--output", type=str,
+                        help="local location of output file, can be either a directory or filepath", metavar="OUTPUT")
     args = parser.parse_args()
 
     if args.bucket_download:
-
         img = download_image_s3(args.bucket_download, args.image)
     else:
         img = Image.open(open(args.image, "rb"))
 
-    file_basename = "".join(args.image.split(".")[0:-1])
+    file_basename = os.path.basename(args.image)
     file_extension = args.image.split(".")[-1].lower()
 
     if file_extension == "png":
@@ -117,9 +125,18 @@ if __name__ == "__main__":
     if args.resize:
         img = resize(img, 1000)
 
+    if args.output:
+        if not os.path.exists(args.output):
+            raise FileNotFoundError()
+
+        if os.path.isfile(args.output):
+            save_file(img, args.output)
+        else:
+            save_file(img, f"{args.output}/{file_basename}")
+
     if args.bucket_upload:
         if args.type.upper() == "PNG" or out_format == "PNG":
             out = save_io(img, "PNG")
         else:
             out = save_io(img, "JPEG", args.quality)
-        upload_s3(args.bucket_upload, out, os.path.basename(args.image), fmt=out_format)
+        upload_s3(args.bucket_upload, out, file_basename, fmt=out_format)

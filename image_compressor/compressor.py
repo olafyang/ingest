@@ -1,7 +1,7 @@
 import argparse
 import os
 import io
-from typing import Optional, NoReturn, Union
+from typing import NoReturn, Union
 import boto3
 from PIL import Image
 
@@ -28,7 +28,7 @@ def download_image_s3(bucket_name: str, key: str) -> Image:
     return image
 
 
-def resize(image: Image, width: int) -> Image:
+def resize(image: Image.Image, width: int) -> Image:
     """
     Resize an PIL Image object proportionally based on a given width
     :param image: image to resize
@@ -85,7 +85,7 @@ def upload_s3(bucket_name: str, body: Union[Image.Image, io.BytesIO], key: str, 
     fmt = Image.MIME[fmt]
 
     res = s3.put_object(Body=body.getvalue(
-    ), Key=key, Bucket=args.bucket_upload, ContentType=fmt)
+    ), Key=key, Bucket=bucket_name, ContentType=fmt)
 
 
 if __name__ == "__main__":

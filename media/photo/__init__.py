@@ -14,7 +14,7 @@ class Photo:
     time_capture = None
     date_export = None
     time_export = None
-    exposure = None
+    shutter = None
     aperture = None
     focal_length = None
     focal_length_35 = None
@@ -23,6 +23,7 @@ class Photo:
     software = None
     artist = None
     iso = None
+    content_type = None
 
     def __init__(self, d: Union[str, Image.Image, BytesIO], title: str = None):
         """Initialize a Photo class, metadata such as exif will be read from the data
@@ -51,7 +52,7 @@ class Photo:
             self.date_export = metadata["xmp:ModifyDate"].date()
             self.time_export = metadata["xmp:ModifyDate"].time()
         if "exif:ExposureTime" in metadata_keys:
-            self.exposure = metadata["exif:ExposureTime"]
+            self.shutter = metadata["exif:ExposureTime"]
         if "exif:FNumber" in metadata_keys:
             self.aperture = metadata["exif:FNumber"].split("/")[0]
         if "exif:FocalLength" in metadata_keys:
@@ -65,6 +66,12 @@ class Photo:
             self.camera_maker = metadata["tiff:Make"]
         if "tiff:Model" in metadata_keys:
             self.camera_maker = metadata["tiff:Model"]
+        if "dc:creator" in metadata_keys:
+            self.artist = metadata["dc:creator"]
+        if "xmp:CreatorTool" in metadata_keys:
+            self.software = metadata["xmp:CreatorTool"]
+        if "dc:format" in metadata_keys:
+            self.content_type = metadata["dc:format"]
 
         # with open("metadata.json", "w") as file:
         #     json.dump(metadata, file)

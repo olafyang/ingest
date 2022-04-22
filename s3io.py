@@ -2,7 +2,7 @@ from io import BytesIO
 import boto3
 from typing import Union
 from PIL import Image
-from media.photo import Photo
+from media.image.photo import Photo
 from get_config import get_config, ConfigScope
 
 _config = get_config(ConfigScope.S3)

@@ -98,6 +98,6 @@ class Photo:
 
     def save_io(self):
         b = BytesIO()
-        self.data.save(b, format=self.data.format)
+        self.data.save(b)
         b.seek(0)
         return b

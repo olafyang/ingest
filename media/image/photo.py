@@ -139,6 +139,10 @@ class Photo(StaticImage):
     content_type: str = None
     raw_filename: str = None
     filename: str = None
+    # NEW
+    exposure_mode: int = None
+    exposure_program: int = None
+    metering_mode: int = None
 
     def __init__(self, data: Union[str, Image.Image, BytesIO], title: str = None, filename: str = None):
         """Initialize a Photo class, metadata such as exif will be read from the data
@@ -162,6 +166,7 @@ class Photo(StaticImage):
 
         exif = {}
 
+        # TODO Implement reading exif directly from PIL
         # Using XMP
         _logger.debug("Metadata in XMP format")
         xmp_meta = XMPMeta(xmp_str=str(self.data.info["XML:com.adobe.xmp"]))
@@ -198,6 +203,12 @@ class Photo(StaticImage):
             self.content_type = metadata["dc:format"]
         if "crs:RawFileName" in metadata_keys:
             self.raw_filename = metadata["crs:RawFileName"]
+        if "exif:ExposureMode" in metadata_keys:
+            self.exposure_mode = metadata["exif:ExposureMode"]
+        if "exif:ExposureProgram" in metadata_keys:
+            self.exposure_program = metadata["exif:ExposureProgram"]
+        if "exif:MeteringMode" in metadata_keys:
+            self.metering_mode = metadata["exif:MeteringMode"]
 
         # with open("metadata.json", "w") as file:
         #     json.dump(metadata, file)

@@ -109,6 +109,7 @@ def read_xmp(src: dict) -> dict:
 
             # Cast string to corrisponding type
             if property_name in _dateparse:
+                print(property_name, property_value)
                 property_value = datetime.fromisoformat(
                     property_value[0:19])
             elif property_name in _intparse:
@@ -194,7 +195,7 @@ class Photo(StaticImage):
         if "tiff:Make" in metadata_keys:
             self.camera_maker = metadata["tiff:Make"]
         if "tiff:Model" in metadata_keys:
-            self.camera_maker = metadata["tiff:Model"]
+            self.camera_model = metadata["tiff:Model"]
         if "dc:creator" in metadata_keys:
             self.artist = metadata["dc:creator"]
         if "xmp:CreatorTool" in metadata_keys:

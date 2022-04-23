@@ -49,8 +49,8 @@ if __name__ == "__main__":
     config = get_config()
 
     # Validate config and arguments
-    if "HANDLE_SERVER" not in config:
-        _logger.critical('Section "HANDLE_SERVER" not in config file')
+    if "HANDLE" not in config:
+        _logger.critical('Section "HANDLE" not in config file')
         exit()
     if "DB" not in config:
         _logger.critical('Section "DB" not in config file')

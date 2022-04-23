@@ -3,6 +3,8 @@ from enum import Enum
 import logging
 import os
 
+_logger = logging.getLogger(f"INGEST.{__name__}")
+
 
 class ConfigScope(Enum):
     S3 = 1
@@ -15,23 +17,25 @@ class ConfigScope(Enum):
 def _parse_config():
     config = ConfigParser()
 
-    logging.debug("Reading config file")
+    _logger.debug("Reading config file")
     config_file_path = os.path.abspath("config.ini")
     config.read(config_file_path)
     if not config.sections():
-        logging.critical(
+        _logger.critical(
             f"No config file found, generating example file at {config_file_path}")
 
-        config["HANDLE_SERVER"] = {
-            "location": "Handle Server REST API endpoint Location",
+        config["HANDLE"] = {
+            "host": "Handle Server REST API endpoint Location",
             "username": "Handle Server Username",
             "password": "Handle Server Password",
+            "prefix": "Handle Prefix",
             "httpsverify": True
         }
         config["DB"] = {
-            "location": "Database location",
+            "host": "Database location",
             "username": "Database Username",
-            "password": "Database Password"
+            "password": "Database Password",
+            "db": "Database Name"
         }
         config["S3"] = {
             "endpoint": "AWS Endpoint",
@@ -54,6 +58,7 @@ def _parse_config():
 
 
 _config: ConfigParser = _parse_config()
+# TODO Validate config file
 
 
 def get_config(scope: ConfigScope = ConfigScope.FULL) -> ConfigParser:

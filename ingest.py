@@ -10,26 +10,23 @@ import re
 
 _HIDDEN_FILE_PATTERN = re.compile(r".+[\.].+")
 _args: argparse.ArgumentParser = None
+_logger = logging.getLogger("INGEST")
 
 
-def process_photo(photo: Photo):
+def process_photo(path: str, skip_upload: bool = False):
+    photo = Photo(path)
     file_extension = photo.data.format.lower()
-    if not _args.noupload:
-        s3io.upload_image(f"test.{file_extension}", photo)
-    else:
-        logging.info('Option "noupload" selected, skipping upload')
+    s3io.upload_image(f"test.{file_extension}", photo, skip_upload=skip_upload)
     pass
 
 
 if __name__ == "__main__":
-    logging.basicConfig()
-
     # Parse command line argument
     parser = argparse.ArgumentParser()
     parser.add_argument("--nocompress",
                         action=argparse.BooleanOptionalAction, help="Do NOT create CDN version")
-    parser.add_argument(
-        "--noupload", action=argparse.BooleanOptionalAction, help="Do NOT upload object to S3")
+    parser.add_argument("--noupload",
+                        action=argparse.BooleanOptionalAction, help="Do NOT upload object to S3", default=False)
     parser.add_argument("-m", "--mode", metavar="MODE",
                         help="Specify the mode to use to process data", choices=["photo", "photos"])
     # Recursivly process files
@@ -44,24 +41,25 @@ if __name__ == "__main__":
     _args = parser.parse_args()
 
     # Toggle logging mode
+    logging.basicConfig()
     if _args.debug:
-        logging.root.setLevel(logging.DEBUG)
-        logging.debug("Debug enabled")
+        _logger.setLevel(logging.DEBUG)
+        _logger.debug("Debug enabled")
 
     config = get_config()
 
     # Validate config and arguments
     if "HANDLE_SERVER" not in config:
-        logging.critical('Section "HANDLE_SERVER" not in config file')
+        _logger.critical('Section "HANDLE_SERVER" not in config file')
         exit()
     if "DB" not in config:
-        logging.critical('Section "DB" not in config file')
+        _logger.critical('Section "DB" not in config file')
         exit()
     if "S3" not in config:
-        logging.critical('Section "S3_MAIN" not in config file')
+        _logger.critical('Section "S3_MAIN" not in config file')
         exit()
     if ("S3_CDN" not in config and not _args.nocompress) or ("S3_CDN" in config and config.getboolean("S3_MAIN", "CDNSeperateKey", fallback=False) is True):
-        logging.critical('Section "S3_CDN" not in config file')
+        _logger.critical('Section "S3_CDN" not in config file')
         exit()
 
     # Run
@@ -70,16 +68,16 @@ if __name__ == "__main__":
     path = os.path.abspath(_args.object)
     files_to_process = []
     if os.path.isfile(path):
-        logging.debug(f"Adding file {path} to queue")
+        _logger.debug(f"Adding file {path} to queue")
         files_to_process.append(path)
     else:
         # Get all files within the directory
         if _args.recursive:
-            logging.debug(
+            _logger.debug(
                 f"Recursive, walking through all sub directories of {path}")
             walk = os.walk(path)
         else:
-            logging.debug(f"Walking through directory {path}")
+            _logger.debug(f"Walking through directory {path}")
             walk = [next(os.walk(path))]
 
         for batch in walk:
@@ -97,10 +95,9 @@ if __name__ == "__main__":
 
             files_to_process.append(files_in_directory)
 
-        logging.info(f"Counted {len(files_to_process)}, start processing")
+    _logger.info(f"Counted {len(files_to_process)} files, start processing")
 
     # Start processing
     for file in files_to_process:
         if _args.mode == "photo" or _args.mode == "photos":
-            p = Photo(file)
-            process_photo(p)
+            process_photo(file, _args.noupload)

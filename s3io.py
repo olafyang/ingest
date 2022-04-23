@@ -4,6 +4,9 @@ from typing import Union
 from PIL import Image
 from media.image.photo import Photo
 from get_config import get_config, ConfigScope
+import logging
+
+_logger = logging.getLogger(f"INGEST.{__name__}")
 
 _config = get_config(ConfigScope.S3)
 _config_cdn = get_config(ConfigScope.S3_CDN)
@@ -30,7 +33,7 @@ _main_bucket_name = _config["bucketname"]
 _cdn_bucket_name = _config_cdn["bucketname"]
 
 
-def upload_image(key: str, data: Union[Photo, Image.Image], content_type: str = None):
+def upload_image(key: str, data: Union[Photo, Image.Image], content_type: str = None, skip_upload: bool = False):
     if isinstance(data, Image.Image) and content_type is None:
         content_type = f"image/{data.format.lower()}"
         raw_data = BytesIO()
@@ -40,12 +43,16 @@ def upload_image(key: str, data: Union[Photo, Image.Image], content_type: str = 
         content_type = data.content_type
         raw_data = data.save_io()
 
-    res = _s3client.put_object(
-        Body=raw_data.getvalue(),
-        Key=key,
-        Bucket=_main_bucket_name,
-        ContentType=content_type
-    )
+    if not skip_upload:
+        _logger.info('Starting upload')
+        res = _s3client.put_object(
+            Body=raw_data.getvalue(),
+            Key=key,
+            Bucket=_main_bucket_name,
+            ContentType=content_type
+        )
+    else:
+        _logger.info('"noupload" selected, skipping upload"')
 
 
 def upload_cdn(key: str, data=Union[Photo, Image.Image], content_type: str = None):
@@ -64,3 +71,5 @@ def upload_cdn(key: str, data=Union[Photo, Image.Image], content_type: str = Non
         Bucket=_cdn_bucket_name,
         ContentType=content_type
     )
+
+    # TODO return location

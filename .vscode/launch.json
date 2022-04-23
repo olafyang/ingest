@@ -11,7 +11,7 @@
             "program": "${workspaceFolder}/ingest.py",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "args": ["-n", "-m", "photo", "--debug", "tests/20190530-_DSC0220.png"]
+            "args": ["--noupload", "--nocompress", "-m", "photo", "--debug", "tests/20190530-_DSC0220.png"]
         }
     ]
 }

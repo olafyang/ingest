@@ -29,5 +29,6 @@ def get_photo_count_by_date(date: date = None):
 
 
 def write_photo():
+    # TODO Check for possible duplicates by checking same filename or raw_filename under the same date
     cursor = _connection.cursor()
     sql = f"INSERT INTO `photos`"

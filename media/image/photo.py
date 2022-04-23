@@ -6,6 +6,7 @@ from libxmp.utils import object_to_dict
 from libxmp.core import XMPMeta
 import re
 import logging
+import os
 from .image import StaticImage
 
 
@@ -136,8 +137,10 @@ class Photo(StaticImage):
     artist: str = None
     iso: int = None
     content_type: str = None
+    raw_filename: str = None
+    filename: str = None
 
-    def __init__(self, data: Union[str, Image.Image, BytesIO], title: str = None):
+    def __init__(self, data: Union[str, Image.Image, BytesIO], title: str = None, filename: str = None):
         """Initialize a Photo class, metadata such as exif will be read from the data
 
         :param d Data of the photo, other metadata will be read from this
@@ -146,9 +149,16 @@ class Photo(StaticImage):
         if isinstance(data, str) or isinstance(data, BytesIO):
             _logger.debug(
                 f"data is of type {type(data)}, attempting to open as PIL.Image.Image")
+
+            if isinstance(data, str):
+                self.filename = os.path.basename(data)
+
             data = Image.open(data)
 
         super(Photo, self).__init__(data, title)
+
+        if filename:
+            self.filename = filename
 
         exif = {}
 
@@ -186,6 +196,8 @@ class Photo(StaticImage):
             self.software = metadata["xmp:CreatorTool"]
         if "dc:format" in metadata_keys:
             self.content_type = metadata["dc:format"]
+        if "crs:RawFileName" in metadata_keys:
+            self.raw_filename = metadata["crs:RawFileName"]
 
         # with open("metadata.json", "w") as file:
         #     json.dump(metadata, file)

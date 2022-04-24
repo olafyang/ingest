@@ -1,12 +1,8 @@
-.vscode/settings.json
-ingest/tests
-**/*.sql
-main.py
-
-config.ini
-**/*.png
-**/*.jpg
-**/.DS_Store
+auth.txt
+*.png
+*.jpg
+__test__/
+__testout__/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -111,15 +107,7 @@ ipython_config.py
 #   https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file-to-version-control
 #poetry.lock
 
-# pdm
-#   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
-#pdm.lock
-#   pdm stores project-wide configurations in .pdm.toml, but it is recommended to not include it
-#   in version control.
-#   https://pdm.fming.dev/#use-with-ide
-.pdm.toml
-
-# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
+# PEP 582; used by e.g. github.com/David-OConnor/pyflow
 __pypackages__/
 
 # Celery stuff

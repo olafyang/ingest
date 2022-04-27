@@ -6,7 +6,7 @@ from .media.image.photo import Photo
 from .get_config import get_config, ConfigScope
 import logging
 
-_logger = logging.getLogger(f"INGEST.{__name__}")
+_logger = logging.getLogger(f"{__name__}")
 
 _config = get_config(ConfigScope.S3)
 _config_cdn = get_config(ConfigScope.S3_CDN)
@@ -35,7 +35,8 @@ _cdn_bucket_name = _config_cdn["bucketname"]
 
 def upload_image(key: str, data: Union[Photo, Image.Image], content_type: str = None):
     if isinstance(data, Image.Image) and content_type is None:
-        content_type = f"image/{data.format.lower()}"
+        # TODO convert format to mime type
+        content_type = f"image/{(data.format.lower())}"
         raw_data = BytesIO()
         data.save(raw_data)
         raw_data.seek(0)
@@ -45,23 +46,27 @@ def upload_image(key: str, data: Union[Photo, Image.Image], content_type: str = 
 
     _logger.debug(f"Content Type is {content_type}")
 
-    _logger.info('Starting upload')
+    _logger.info('Starting S3 upload for {}'.format(key))
     res = _s3client.put_object(
         Body=raw_data.getvalue(),
         Key=key,
         Bucket=_main_bucket_name,
         ContentType=content_type
     )
-    _logger.info("S3 Upload completed")
     return f"s3://{_main_bucket_name}/{key}"
 
 
-def upload_cdn(key: str, data=Union[Photo, Image.Image], content_type: str = None):
+def upload_cdn(key: str, data=Union[Photo, Image.Image, BytesIO], content_type: str = None):
     if isinstance(data, Image.Image) and content_type is None:
         content_type = f"image/{data.format.lower()}"
         raw_data = BytesIO()
         data.save(raw_data)
         raw_data.seek(0)
+    elif isinstance(data, BytesIO):
+        if not content_type:
+            raise KeyError(
+                "Content Type required when type of data is BytesIO")
+        raw_data = data
     else:
         content_type = data.content_type
         raw_data = data.save_io()
@@ -72,5 +77,3 @@ def upload_cdn(key: str, data=Union[Photo, Image.Image], content_type: str = Non
         Bucket=_cdn_bucket_name,
         ContentType=content_type
     )
-
-    # TODO return location

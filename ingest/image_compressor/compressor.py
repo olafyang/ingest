@@ -132,7 +132,7 @@ def compress(image: Image.Image, options: dict = None) -> list:
             "width": out_img.size[0],
             "height": out_img.size[1],
             "content_type": convert_to_mime(out_format),
-            "size_KB": int(out_b.getbuffer().nbytes / 1024),
+            "size_kilobytes": int(out_b.getbuffer().nbytes / 1024),
             "purpose": out_options["purpose"]
         }
         out.append((out_b, out_info))

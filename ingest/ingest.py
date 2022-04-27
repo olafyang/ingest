@@ -10,6 +10,7 @@ from .handle.handle import Handle
 from .db.db import DB
 from .image_compressor.compressor import compress
 import re
+from uuid import uuid1
 from . import util, exceptions
 
 
@@ -32,10 +33,10 @@ def process_photo(path: str, offline: bool = False, no_compress: bool = False) -
         _logger.info("Writing handle record")
         handle, location = handle_client.register(photo)
 
-        _logger.info("Uploading %s to S3 main bucket %s".format(
+        _logger.info("Uploading {} to S3 main bucket {}".format(
             path, _config["S3"]["bucketname"]))
         s3_location = s3io.upload_image(
-            f"{handle}.{file_extension}", photo, skip_upload=offline)
+            f"{handle}.{file_extension}", photo)
 
         _logger.info("Inserting to database")
         db.write_photo(handle, s3_location, photo)
@@ -43,10 +44,23 @@ def process_photo(path: str, offline: bool = False, no_compress: bool = False) -
         _logger.info('"noupload" selected, skipping upload"')
 
     if not no_compress:
-        c = compress(photo.data)
-        for i in enumerate(c):
-            with open(f"{i[0]}.jpeg", "wb") as file:
-                file.write(i[1][0].read())
+        compress_results = compress(photo.data)
+        u = str(uuid1()).split("-")[0]
+        for item in compress_results:
+
+            if not offline:
+                cdn_key = "{}_w{}.{}".format(
+                    handle, item[1]["width"], item[1]["content_type"].split("/")[1])
+                s3io.upload_cdn(cdn_key, item[0], item[1]["content_type"])
+                item[1]["source_handle"] = handle
+            else:
+                cdn_key = "{}_w{}.{}".format(
+                    u, item[1]["width"], item[1]["content_type"].split("/")[1])
+
+            item[1]["cdn_key"] = str(cdn_key)
+            item[1]["location"] = "{}/{}".format(
+                _config["S3_CDN"]["cdn_endpoint"], cdn_key)
+            db.write_cdn(item[1])
     else:
         _logger.info('"nocompress" selected, skipping compress')
 

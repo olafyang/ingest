@@ -48,7 +48,8 @@ def _parse_config():
             "endpoint": "AWS Endpoint",
             "accessKeyID": "AWS Access Key ID",
             "accessKeySecret": "AWS Access Key Secret",
-            "bucketname": "CDN Bucket Name"
+            "bucketname": "CDN Bucket Name",
+            "cdn_endpoint": "CDN Endpoint"
         }
         with open(config_file_path, "w") as config_file:
             config.write(config_file)

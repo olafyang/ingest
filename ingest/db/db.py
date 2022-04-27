@@ -99,3 +99,19 @@ class DB:
         cursor.execute(sql)
         print(f'Inserted photo {handle}')
         cursor.close()
+
+    def write_cdn(self, cdn_info: dict):
+        cursor: Cursor = self._connection.cursor()
+
+        val = ""
+        for k, v in cdn_info.items():
+            if v is not None:
+                val += f'{k} = "{v}", '
+
+        val = val[0:-2]  # Remove last comma
+        val += ";"
+
+        _logger.debug("Writing {} to database".format(cdn_info["cdn_key"]))
+        sql = f"INSERT INTO cdn SET {val}"
+        cursor.execute(sql)
+        cursor.close()

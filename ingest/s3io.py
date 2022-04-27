@@ -24,7 +24,7 @@ if _config.getboolean("cdnseperatekey", fallback=False):
         "s3",
         endpoint_url=_config_cdn["endpoint"],
         aws_access_key_id=_config_cdn["accesskeyid"],
-        aws_secret_access_key=_config_cdn["aws_secret_access_key"]
+        aws_secret_access_key=_config_cdn["accesskeysecret"]
     )
 else:
     _s3client_cdn = _s3client
@@ -33,7 +33,7 @@ _main_bucket_name = _config["bucketname"]
 _cdn_bucket_name = _config_cdn["bucketname"]
 
 
-def upload_image(key: str, data: Union[Photo, Image.Image], content_type: str = None, skip_upload: bool = False):
+def upload_image(key: str, data: Union[Photo, Image.Image], content_type: str = None):
     if isinstance(data, Image.Image) and content_type is None:
         content_type = f"image/{data.format.lower()}"
         raw_data = BytesIO()
@@ -43,17 +43,17 @@ def upload_image(key: str, data: Union[Photo, Image.Image], content_type: str = 
         content_type = data.content_type
         raw_data = data.save_io()
 
-    if not skip_upload:
-        _logger.info('Starting upload')
-        res = _s3client.put_object(
-            Body=raw_data.getvalue(),
-            Key=key,
-            Bucket=_main_bucket_name,
-            ContentType=content_type
-        )
-        return f"s3://{_main_bucket_name}/{key}"
-    else:
-        _logger.info('"noupload" selected, skipping upload"')
+    _logger.debug(f"Content Type is {content_type}")
+
+    _logger.info('Starting upload')
+    res = _s3client.put_object(
+        Body=raw_data.getvalue(),
+        Key=key,
+        Bucket=_main_bucket_name,
+        ContentType=content_type
+    )
+    _logger.info("S3 Upload completed")
+    return f"s3://{_main_bucket_name}/{key}"
 
 
 def upload_cdn(key: str, data=Union[Photo, Image.Image], content_type: str = None):

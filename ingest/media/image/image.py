@@ -2,7 +2,7 @@ from PIL import Image
 from io import BytesIO
 import logging
 
-_logger = logging.getLogger(f"INGEST.{__name__}")
+_logger = logging.getLogger(__name__)
 
 
 class StaticImage:

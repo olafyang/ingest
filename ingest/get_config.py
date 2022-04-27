@@ -3,7 +3,7 @@ from enum import Enum
 import logging
 import os
 
-_logger = logging.getLogger(f"INGEST.{__name__}")
+_logger = logging.getLogger(__name__)
 
 
 class ConfigScope(Enum):

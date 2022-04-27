@@ -1,4 +1,5 @@
 import os
+import sys
 import argparse
 import logging
 import itertools
@@ -7,29 +8,48 @@ from . import s3io
 from .media.image.photo import Photo
 from .handle.handle import Handle
 from .db.db import DB
+from .image_compressor.compressor import compress
 import re
 from . import util, exceptions
 
 
 _HIDDEN_FILE_PATTERN = re.compile(r".+[\.].+")
 _args: argparse.ArgumentParser = None
-_logger = logging.getLogger("INGEST")
+_config = get_config()
+logging.basicConfig(stream=sys.stdout)
+_logger = logging.getLogger("ingest")
 
 
-def process_photo(path: str, skip_upload: bool = False) -> None:
+def process_photo(path: str, offline: bool = False, no_compress: bool = False) -> None:
+    _logger.info(f"Start processing {path}")
     photo = Photo(path)
     file_extension = photo.data.format.lower()
 
     db = DB()
     handle_client = Handle(db)
 
-    handle, location = handle_client.register(photo)
+    if not offline:
+        _logger.info("Writing handle record")
+        handle, location = handle_client.register(photo)
 
-    _logger.info(f'Uploading "{path}"')
-    s3_location = s3io.upload_image(
-        f"{handle}.{file_extension}", photo, skip_upload=skip_upload)
+        _logger.info("Uploading %s to S3 main bucket %s".format(
+            path, _config["S3"]["bucketname"]))
+        s3_location = s3io.upload_image(
+            f"{handle}.{file_extension}", photo, skip_upload=offline)
 
-    db.write_photo(handle, s3_location, photo)
+        _logger.info("Inserting to database")
+        db.write_photo(handle, s3_location, photo)
+    else:
+        _logger.info('"noupload" selected, skipping upload"')
+
+    if not no_compress:
+        c = compress(photo.data)
+        for i in enumerate(c):
+            with open(f"{i[0]}.jpeg", "wb") as file:
+                file.write(i[1][0].read())
+    else:
+        _logger.info('"nocompress" selected, skipping compress')
+
     db.close()
 
 
@@ -38,8 +58,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--nocompress",
                         action=argparse.BooleanOptionalAction, help="Do NOT create CDN version")
-    parser.add_argument("--noupload",
-                        action=argparse.BooleanOptionalAction, help="Do NOT upload object to S3", default=False)
+    parser.add_argument("--offline",
+                        action=argparse.BooleanOptionalAction, help="Do NOT write to database and S3", default=False)
     parser.add_argument("-m", "--mode", metavar="MODE",
                         help="Specify the mode to use to process data", choices=["photo", "photos"])
     # Recursivly process files
@@ -54,24 +74,21 @@ if __name__ == "__main__":
     _args = parser.parse_args()
 
     # Toggle logging mode
-    logging.basicConfig()
     if _args.debug:
         _logger.setLevel(logging.DEBUG)
         _logger.debug("Debug enabled")
 
-    config = get_config()
-
     # Validate config and arguments
-    if "HANDLE" not in config:
+    if "HANDLE" not in _config:
         _logger.critical('Section "HANDLE" not in config file')
         exit()
-    if "DB" not in config:
+    if "DB" not in _config:
         _logger.critical('Section "DB" not in config file')
         exit()
-    if "S3" not in config:
+    if "S3" not in _config:
         _logger.critical('Section "S3_MAIN" not in config file')
         exit()
-    if ("S3_CDN" not in config and not _args.nocompress) or ("S3_CDN" in config and config.getboolean("S3_MAIN", "CDNSeperateKey", fallback=False) is True):
+    if ("S3_CDN" not in _config and not _args.nocompress) or ("S3_CDN" in _config and _config.getboolean("S3_MAIN", "CDNSeperateKey", fallback=False) is True):
         _logger.critical('Section "S3_CDN" not in config file')
         exit()
 
@@ -110,7 +127,9 @@ if __name__ == "__main__":
 
     _logger.info(f"Counted {len(files_to_process)} files, start processing")
 
+    if _args.mode is None:
+        raise NameError("No mode given")
     # Start processing
     for file in files_to_process:
         if _args.mode == "photo" or _args.mode == "photos":
-            process_photo(file, _args.noupload)
+            process_photo(file, _args.offline)

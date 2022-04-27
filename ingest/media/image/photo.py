@@ -13,7 +13,7 @@ import sys
 
 _property_name_pattern = re.compile(r"(.*:.+?)(?=(\b))")
 _date_pattern = re.compile(r"^(\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d)")
-_logger = logging.getLogger(f"INGEST.{__name__}")
+_logger = logging.getLogger(__name__)
 
 
 def read_xmp(src: dict) -> dict:

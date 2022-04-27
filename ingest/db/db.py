@@ -7,7 +7,7 @@ from ..media.image.photo import Photo
 import logging
 from .. import exceptions
 
-_logger = logging.getLogger(f"INGEST.{__name__}")
+_logger = logging.getLogger(__name__)
 _config = get_config(ConfigScope.DB)
 
 
@@ -31,11 +31,9 @@ class DB:
 
     # Photos
 
-    def count_photo(self, date: date):
-        # TODO add iso format string support
-        # Change checking suffx counts ?
+    def count_photo(self, date: date, hdl_prefix: str):
         cursor: Cursor = self._connection.cursor()
-        sql = f'select count(handle) from photos where date_capture="{date.isoformat()}";'
+        sql = f'select count(handle) from photos where handle like "{hdl_prefix}/P{date.isoformat()}%";'
         cursor.execute(sql)
         res = cursor.fetchone()
         cursor.close()

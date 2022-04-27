@@ -1,142 +1,193 @@
-import argparse
-import os
 import io
-from typing import NoReturn, Union
-import boto3
 from PIL import Image
+import logging
+from ..util import convert_to_mime
+
+_logger = logging.getLogger(__name__)
+_compress_default_options = {
+    "file_format": "jpg",
+    "outputs": [
+        {
+            "quality": 85,
+            "w": 250,
+            "purpose": "thumbnail"
+        },
+        {
+            "quality": 85,
+            "w": 500,
+            "purpose": "thumbnail"
+        },
+        {
+            "quality": 85,
+            "w": 750,
+            "purpose": "preview"
+        },
+        {
+            "quality": 85,
+            "w": 1000,
+            "purpose": "view"
+        },
+        {
+            "quality": 85,
+            "w": 2000,
+            "purpose": "view"
+        },
+        {
+            "quality": 85,
+            "purpose": "view"
+        }
+    ]
+}
 
 
-class UnsupportedProtocol(Exception):
-    pass
+def resize(image: Image.Image, width: int = None, height: int = None) -> Image.Image:
+    """Resize an PIL Image object proportionally based on a given values
+    If only either width or height is given, scales image proportionally.
+    If both values are given ,resize image to the values
+    If both values are not given, resizing does not occur
 
+    Args:
+        image (Image.Image): image to resize
+        width (int): width of desired output image
 
-s3 = boto3.client("s3",
-                  endpoint_url="https://s3.eu-central-003.backblazeb2.com",
-                  aws_access_key_id=os.environ.get("ACCESS_KEY_ID"),
-                  aws_secret_access_key=os.environ.get("ACCESS_KEY_SECRET"))
-
-
-def download_image_s3(bucket_name: str, key: str) -> Image:
-    """
-    Download an image from a given S3 bucket
-    :param bucket_name: S3 bucket name
-    :param key: S3 object key
-    :return: PIL Image Object
-    """
-    obj = s3.get_object(Bucket=bucket_name, Key=key)
-    image = Image.open(io.BytesIO(obj["Body"].read()))
-    return image
-
-
-def resize(image: Image.Image, width: int) -> Image:
-    """
-    Resize an PIL Image object proportionally based on a given width
-    :param image: image to resize
-    :param width: width of desired output image
-    :return:
+    Returns:
+        Image: Image.Image
     """
     old_size = image.size
-    new_size = (width, int(old_size[1] * (width / old_size[0])))
+    if width:
+        if height:
+            new_size = (width, height)
+        else:
+            new_size = (width, int(old_size[1] * (width / old_size[0])))
+    elif height:
+        if width:
+            new_size = (width, height)
+        else:
+            new_size = (int(old_size[0] * (height / old_size[1])), height)
+    else:
+        return image
+
+    _logger.debug(f"Resizing image to {new_size}")
+
     image = image.resize(new_size)
     return image
 
 
 def save_io(image: Image.Image, img_format: str = "JPEG", quality: int = 85) -> io.BytesIO:
+    """Saves an PIL Image to BytesIO
+
+    Args:
+        image (Image.Image): Source Image
+        img_format (str, optional): Desired output format. Defaults to "JPEG".
+        quality (int, optional): The Quality of JPG if using. Defaults to 85.
+
+    Returns:
+        io.BytesIO: A BytesIO of the saved / compressed image
     """
-    Save an PIL Image to bytesIO
-    :param image: source image
-    :param img_format: output image format, defaults JPEG
-    :param quality: image quality if using jpg, defaults to 85
-    :return:
-    """
+
     img_format = img_format.upper()
+
+    _logger.debug(f"Saving image as {img_format} as BytesIO")
 
     b = io.BytesIO()
     if img_format == "PNG":
         image.save(b, format="PNG", optimize=True)
-    else:
+    elif img_format == "JPG" or img_format == "JPEG":
         image.save(b, format="JPEG", quality=quality, optimize=True)
 
     b.seek(0)
     return b
 
 
-def save_file(image: Image.Image, path: str):
-    if not os.path.exists(os.path.dirname(path)):
-        raise FileNotFoundError()
+def compress(image: Image.Image, options: dict = None) -> list:
+    """Compress and resize a singe PIL image based on optiopns
 
-    image.save(path)
+    Args:
+        image (Image.Image): Source Image
+        options (dict, optional): Options to compress and resize the image, see _compress_default_option variable for example. Uses default options if None is given
 
-
-def upload_s3(bucket_name: str, body: Union[Image.Image, io.BytesIO], key: str, fmt: str) -> NoReturn:
+    Returns:
+        list: A list containg both output images and it's information such as size and format in tuple, (data: BytesIO, info: dict)
     """
-    Uploads a PIL Image or BytesIO Object to given S3 bucket
-    :param bucket_name: S3 bucket name
-    :param body: Image or BytesIO object
-    :param key:  S3 object key
-    :param fmt: Content-Type Header
-    """
-    if isinstance(body, Image.Image):
-        body = save_io(body)
-        fmt = "JPEG"
+    if options is None:
+        options = _compress_default_options
 
-    fmt = fmt.upper()
+    out_format = options["file_format"]
+    out = []
+    for out_options in options["outputs"]:
+        out_img = image.copy()
 
-    fmt = Image.MIME[fmt]
+        out_w = None
+        out_h = None
 
-    res = s3.put_object(Body=body.getvalue(
-    ), Key=key, Bucket=bucket_name, ContentType=fmt)
+        if "w" in out_options.keys():
+            out_w = out_options["w"]
 
+        if "h" in out_options.keys():
+            out_h = out_options["h"]
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-q", "--quality", type=int,
-                        help="Quality setting of output image", default=85)
-    parser.add_argument("-x", "--resize", type=int,
-                        help="Output image x dimension size, scales y automatically")
-    parser.add_argument(
-        "-t", "--type", choices=["png", "jpg", "jpeg"], help="Output image format, can be either jpg or png",
-        default="jpg")
-    parser.add_argument(
-        "image", help="Source image location, can either be local or via http")
-    parser.add_argument(
-        "-d", "--use-s3", help="Use a S3 bucket as image source", metavar="BUCKET NAME", dest="bucket_download")
-    parser.add_argument("-u", "--upload-s3",
-                        help="Upload output image to a S3 bucket", metavar="BUCKET NAME", dest="bucket_upload")
-    parser.add_argument("-o", "--output", type=str,
-                        help="local location of output file, can be either a directory or filepath", metavar="OUTPUT")
-    args = parser.parse_args()
+        out_img = resize(out_img, out_w, out_h)
+        out_b = save_io(out_img, out_format, out_options["quality"])
+        out_info = {
+            "width": out_img.size[0],
+            "height": out_img.size[1],
+            "content_type": convert_to_mime(out_format),
+            "size_KB": int(out_b.getbuffer().nbytes / 1024),
+            "purpose": out_options["purpose"]
+        }
+        out.append((out_b, out_info))
 
-    if args.bucket_download:
-        img = download_image_s3(args.bucket_download, args.image)
-    else:
-        img = Image.open(open(args.image, "rb"))
+    return out
 
-    file_basename = os.path.basename(args.image)
-    file_extension = args.image.split(".")[-1].lower()
+# if __name__ == "__main__":
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument("-q", "--quality", type=int,
+#                         help="Quality setting of output image", default=85)
+#     parser.add_argument("-x", "--resize", type=int,
+#                         help="Output image x dimension size, scales y automatically")
+#     parser.add_argument(
+#         "-t", "--type", choices=["png", "jpg", "jpeg"], help="Output image format, can be either jpg or png",
+#         default="jpg")
+#     parser.add_argument(
+#         "image", help="Source image location, can either be local or via http")
+#     parser.add_argument(
+#         "-d", "--use-s3", help="Use a S3 bucket as image source", metavar="BUCKET NAME", dest="bucket_download")
+#     parser.add_argument("-u", "--upload-s3",
+#                         help="Upload output image to a S3 bucket", metavar="BUCKET NAME", dest="bucket_upload")
+#     parser.add_argument("-o", "--output", type=str,
+#                         help="local location of output file, can be either a directory or filepath", metavar="OUTPUT")
+#     args = parser.parse_args()
 
-    if file_extension == "png":
-        out_format = "PNG"
-    elif file_extension == "jpg":
-        out_format = "JPEG"
-    else:
-        out_format = "JPEG"
+#     if args.bucket_download:
+#         img = download_image_s3(args.bucket_download, args.image)
+#     else:
+#         img = Image.open(open(args.image, "rb"))
 
-    if args.resize:
-        img = resize(img, 1000)
+#     file_basename = os.path.basename(args.image)
+#     file_extension = args.image.split(".")[-1].lower()
 
-    if args.output:
-        if not os.path.exists(args.output):
-            raise FileNotFoundError()
+#     if file_extension == "png":
+#         out_format = "PNG"
+#     elif file_extension == "jpg":
+#         out_format = "JPEG"
+#     else:
+#         out_format = "JPEG"
 
-        if os.path.isfile(args.output):
-            save_file(img, args.output)
-        else:
-            save_file(img, f"{args.output}/{file_basename}")
+#     if args.resize:
+#         img = resize(img, 1000)
 
-    if args.bucket_upload:
-        if args.type.upper() == "PNG" or out_format == "PNG":
-            out = save_io(img, "PNG")
-        else:
-            out = save_io(img, "JPEG", args.quality)
-        upload_s3(args.bucket_upload, out, file_basename, fmt=out_format)
+#     if args.output:
+#         if not os.path.exists(args.output):
+#             raise FileNotFoundError()
+
+#         if os.path.isfile(args.output):
+#             save_file(img, args.output)
+#         else:
+#             save_file(img, f"{args.output}/{file_basename}")
+
+#     if args.bucket_upload:
+#         if args.type.upper() == "PNG" or out_format == "PNG":
+#             out = save_io(img, "PNG")
+#         else:
+#             out = save_io(img, "JPEG", args.quality)
+#         upload_s3(args.bucket_upload, out, file_basename, fmt=out_format)

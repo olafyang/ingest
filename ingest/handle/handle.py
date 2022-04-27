@@ -8,16 +8,28 @@ import logging
 from datetime import date
 from .. import util, exceptions
 
-_logger = logging.getLogger(f"INGEST.{__name__}")
+_logger = logging.getLogger(__name__)
 _config = get_config(ConfigScope.HANDLE)
 
 
 class Handle():
 
-    db: DB = None
+    _db: DB = None
+    _handle_client: PyHandleClient = None
 
     def __init__(self, db: DB):
-        self.db = db
+        self._db = db
+        https_verify = _config.get("httpsverify")
+        try:
+            https_verify = bool(https_verify)
+        except ValueError:
+            pass
+
+        self._handle_client: PyHandleClient = PyHandleClient(
+            "rest").instantiate_with_username_and_password(_config["host"],
+                                                           _config["username"],
+                                                           _config["password"],
+                                                           HTTPS_verify=https_verify)
 
     def _make_handle(self, obj: Photo, check_duplicates: bool = True):
         """Make a handle string using default definition based on requirement
@@ -29,6 +41,7 @@ class Handle():
             db = DB()
 
             # Format "P<DATE>.I<ID>"
+            # TODO Guess date from file path
             if obj.date_capture:
                 obj_date = obj.date_capture
             elif obj.date_export:
@@ -42,7 +55,7 @@ class Handle():
                     raise exceptions.ObjectDuplicateException
 
             prefix = _config["prefix"]
-            handle = f"{prefix}/P{obj_date.isoformat()}.I{db.count_photo(obj_date) + 1}"
+            handle = f"{prefix}/P{obj_date.isoformat()}.I{db.count_photo(obj_date, prefix) + 1}"
             return handle
 
     def register(self, obj: Photo, location: str = None, name: str = None, check_duplicates: bool = True) -> tuple:
@@ -70,16 +83,10 @@ class Handle():
             return
 
         _logger.info(f'Creating Handle "{handle}"')
-        handle_client: PyHandleClient = PyHandleClient(
-            "rest").instantiate_with_username_and_password(_config["host"],
-                                                           _config["username"],
-                                                           _config["password"],
-                                                           HTTPS_verify=_config.getboolean("httpsverify"))
-
         if location is None:
             location = f"{util.get_endpoint(obj)}/{handle}"
 
-        handle_client.register_handle(handle, location)
+        self._handle_client.register_handle(handle, location)
         _logger.info(f'Handle "{handle}" created! Pointing to "{location}"')
         # TODO Error handling
 

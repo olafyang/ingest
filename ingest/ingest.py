@@ -146,4 +146,4 @@ if __name__ == "__main__":
     # Start processing
     for file in files_to_process:
         if _args.mode == "photo" or _args.mode == "photos":
-            process_photo(file, _args.offline)
+            process_photo(file, _args.offline, _args.nocompress)

@@ -137,7 +137,7 @@ if __name__ == "__main__":
             files_in_directory = list(map(
                 lambda f, p: f"{p}/{f}", files_in_directory, itertools.repeat(batch[0], len(files_in_directory))))
 
-            files_to_process.append(files_in_directory)
+            files_to_process += files_in_directory
 
     _logger.info(f"Counted {len(files_to_process)} files, start processing")
 

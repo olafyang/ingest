@@ -1,5 +1,6 @@
 .vscode/settings.json
 ingest/tests
+tests/
 **/*.sql
 main.py
 

@@ -1,3 +1,4 @@
+from io import TextIOWrapper
 import os
 import sys
 import argparse
@@ -21,9 +22,9 @@ logging.basicConfig(stream=sys.stdout)
 _logger = logging.getLogger("ingest")
 
 
-def process_photo(path: str, offline: bool = False, no_compress: bool = False) -> None:
+def process_photo(path: str, offline: bool = False, no_compress: bool = False, xmp_file: TextIOWrapper = None) -> None:
     _logger.info(f"Start processing {path}")
-    photo = Photo(path)
+    photo = Photo(path, xmp_file=xmp_file)
     file_extension = photo.data.format.lower()
 
     db = DB()
@@ -83,6 +84,8 @@ if __name__ == "__main__":
                         action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--debug", metavar="Enable Debug",
                         action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument("--xmp", metavar="XMP FILE",
+                        help="Read metadata from XMP file")
     parser.add_argument("object", help="The Object to process and upload")
 
     _args = parser.parse_args()
@@ -146,4 +149,13 @@ if __name__ == "__main__":
     # Start processing
     for file in files_to_process:
         if _args.mode == "photo" or _args.mode == "photos":
-            process_photo(file, _args.offline, _args.nocompress)
+            xmp_file = None
+            if _args.xmp:
+                if len(files_to_process) > 1:
+                    raise KeyError(
+                        "Only one photo allowed if using custom XMP file.")
+                _logger.debug(f"Using external XMP file {_args.xmp}")
+                xmp_file = open(_args.xmp, "r")
+                process_photo(file, _args.offline, _args.nocompress, xmp_file)
+            else:
+                process_photo(file, _args.offline, _args.nocompress)

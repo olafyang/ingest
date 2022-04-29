@@ -1,4 +1,4 @@
-from io import BytesIO
+from io import BytesIO, TextIOWrapper
 from PIL import Image, ExifTags
 from typing import Union
 from datetime import date, time, datetime
@@ -178,7 +178,7 @@ class Photo(StaticImage):
     raw_filename: str = None
     filename: str = None
 
-    def __init__(self, data: Union[str, Image.Image, BytesIO], title: str = None, filename: str = None):
+    def __init__(self, data: Union[str, Image.Image, BytesIO], title: str = None, filename: str = None, xmp_file: TextIOWrapper = None):
         """Initialize a Photo class, metadata such as exif will be read from the data
 
         :param d Data of the photo, other metadata will be read from this
@@ -207,7 +207,11 @@ class Photo(StaticImage):
         # TODO Implement reading exif directly from PIL
         # Using XMP
         _logger.debug("Metadata in XMP format")
-        xmp_meta = XMPMeta(xmp_str=str(self.data.info["XML:com.adobe.xmp"]))
+        if xmp_file:
+            xmp_meta = XMPMeta(xmp_str=xmp_file.read())
+        else:
+            xmp_meta = XMPMeta(xmp_str=str(
+                self.data.info["XML:com.adobe.xmp"]))
         metadata = read_xmp(object_to_dict(xmp_meta))
 
         _logger.debug("Setting attributes to available metadata")
@@ -225,7 +229,7 @@ class Photo(StaticImage):
         if "exif:FocalLength" in metadata_keys:
             fl = metadata["exif:FocalLength"].split("/")
             self.focal_length = int(int(fl[0]) / int(fl[1]))
-        if "exif:FocalLengthIn35mmFilm":
+        if "exif:FocalLengthIn35mmFilm" in metadata_keys:
             self.focal_length_35 = int(metadata["exif:FocalLengthIn35mmFilm"])
         if "exif:ISOSpeedRatings" in metadata_keys:
             self.iso = int(metadata["exif:ISOSpeedRatings"])
@@ -247,9 +251,6 @@ class Photo(StaticImage):
             self.exposure_program = metadata["exif:ExposureProgram"]
         if "exif:MeteringMode" in metadata_keys:
             self.metering_mode = metadata["exif:MeteringMode"]
-
-        # with open("metadata.json", "w") as file:
-        #     json.dump(metadata, file)
 
         # Using PIL
         # img_exif = self.photo.getexif()

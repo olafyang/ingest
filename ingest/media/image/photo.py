@@ -204,8 +204,6 @@ class Photo(StaticImage):
                                 "xmpmeta"]["RDF"]["Description"])
             metadata_keys = metadata.keys()
 
-            print(metadata["CreateDate"])
-
             _logger.debug("Setting attributes to available metadata")
             if "CreateDate" in metadata_keys:
                 self.date_capture = metadata["CreateDate"].date()

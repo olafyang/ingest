@@ -5,13 +5,22 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Ingest CLI",
+            "name": "Photo: Test XMP",
             "type": "python",
             "request": "launch",
             "module": "ingest.ingest",
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": ["--offline", "--nocompress", "-m", "photo", "--debug", "${workspaceFolder}/tests/20190530-_DSC0220.png"]
+        },
+        {
+            "name": "Photo: Test EXIF",
+            "type": "python",
+            "request": "launch",
+            "module": "ingest.ingest",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": ["--offline", "--nocompress", "-m", "photo", "--debug", "${workspaceFolder}/tests/DSCN0363.JPG"]
         }
     ]
 }

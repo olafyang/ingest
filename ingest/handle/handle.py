@@ -1,4 +1,4 @@
-import sys
+import re
 from ..media.image.photo import Photo
 from ..db.db import DB
 from ..get_config import get_config, ConfigScope
@@ -31,21 +31,37 @@ class Handle():
                                                            _config["password"],
                                                            HTTPS_verify=https_verify)
 
-    def _make_handle(self, obj: Photo, check_duplicates: bool = True):
+    def _make_handle(self, obj: Photo, check_duplicates: bool = True) -> str:
         """Make a handle string using default definition based on requirement
 
-        :param obj
+        Args:
+            obj (Photo): The object to create handle from
+            check_duplicates (bool, optional): Check for potential duplicates. Defaults to True.
+
+        Raises:
+            exceptions.ObjectDuplicateException: If check_duplicates is True and a potential duplicate exists
+
+        Returns:
+            str: Handle str in the format of prefix/suffix
         """
         if isinstance(obj, Photo):
-            onj: Photo
+            obj: Photo
             db = DB()
 
             # Format "P<DATE>.I<ID>"
-            # TODO Guess date from file path
             if obj.date_capture:
                 obj_date = obj.date_capture
             elif obj.date_export:
                 obj_date = obj.date_export
+            elif hasattr(obj, "filepath"):
+                date_regex = r"(\d\d\d\d)-(\d\d)-(\d\d)"
+                res = re.search(date_regex, obj.filepath)
+                if res:
+                    try:
+                        obj_date = date(
+                            res.group(1), res.group(2), res.group(3))
+                    except ValueError:
+                        obj_date = date.today()
             else:
                 obj_date = date.today()
 

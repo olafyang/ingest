@@ -184,6 +184,7 @@ class Photo(StaticImage):
 
             if isinstance(data, str):
                 self.filename = os.path.basename(data)
+                self.filepath = os.path.abspath(data)
 
             data = Image.open(data)
         else:

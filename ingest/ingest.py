@@ -157,6 +157,8 @@ if __name__ == "__main__":
 
     if _args.mode is None:
         raise NameError("No mode given")
+
+    skipped_files = []
     # Start processing
     for file in files_to_process:
         try:
@@ -175,4 +177,7 @@ if __name__ == "__main__":
                                   _args.offline, _args.nocompress, check_duplicates=not _args.allow_duplicates)
         except exceptions.ObjectDuplicateException:
             _logger.info(f"Skipping {file}")
+            skipped_files.append(file)
             continue
+
+    _logger.warn(f"Skipped {len(skipped_files)} files, {str(skipped_files)}")

@@ -55,7 +55,7 @@ class Handle():
                     raise exceptions.ObjectDuplicateException
 
             prefix = _config["prefix"]
-            handle = f"{prefix}/P{obj_date.isoformat()}.I{db.count_photo(obj_date, prefix) + 1}"
+            handle = f"{prefix}/P{obj_date.isoformat()}.I{db.count_handle(obj_date, prefix) + 1}"
             return handle
 
     def register(self, obj: Photo, location: str = None, name: str = None, check_duplicates: bool = True) -> tuple:

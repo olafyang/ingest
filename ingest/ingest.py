@@ -22,7 +22,7 @@ logging.basicConfig(stream=sys.stdout)
 _logger = logging.getLogger("ingest")
 
 
-def process_photo(path: str, offline: bool = False, no_compress: bool = False, xmp_file: TextIOWrapper = None) -> None:
+def process_photo(path: str, tags: list = None, offline: bool = False, no_compress: bool = False, xmp_file: TextIOWrapper = None, check_duplicates: bool = True) -> None:
     _logger.info(f"Start processing {path}")
     photo = Photo(path, xmp_file=xmp_file)
     file_extension = photo.data.format.lower()
@@ -32,7 +32,7 @@ def process_photo(path: str, offline: bool = False, no_compress: bool = False, x
 
     if not offline:
         _logger.info("Writing handle record")
-        handle, location = handle_client.register(photo)
+        handle, location = handle_client.register(photo, check_duplicates=check_duplicates)
 
         _logger.info("Uploading {} to S3 main bucket {}".format(
             path, _config["S3"]["bucketname"]))
@@ -40,9 +40,12 @@ def process_photo(path: str, offline: bool = False, no_compress: bool = False, x
             f"{handle}.{file_extension}", photo)
 
         _logger.info("Inserting to database")
-        db.write_photo(handle, s3_location, photo)
+        db.write_photo(handle, s3_location, photo, check_duplicate=check_duplicates)
+
+        if tags:
+            db.write_tags(handle, tags)
     else:
-        _logger.info('"noupload" selected, skipping upload"')
+        _logger.info('"offline" selected, skipping upload"')
 
     if not no_compress:
         compress_results = compress(photo.data)
@@ -75,8 +78,10 @@ if __name__ == "__main__":
                         action=argparse.BooleanOptionalAction, help="Do NOT create CDN version")
     parser.add_argument("--offline",
                         action=argparse.BooleanOptionalAction, help="Do NOT write to database and S3", default=False)
-    parser.add_argument("-m", "--mode", metavar="MODE",
+    parser.add_argument("-m", "--mode", metavar="MODE", required=True,
                         help="Specify the mode to use to process data", choices=["photo", "photos"])
+    parser.add_argument(
+        "-t", "--tag", action=argparse._AppendAction, help="Set tag", dest="tags")
     # Recursivly process files
     parser.add_argument("-r", "--recursive", metavar="Find files recursively",
                         action=argparse.BooleanOptionalAction, default=False)
@@ -84,6 +89,8 @@ if __name__ == "__main__":
                         action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--debug", metavar="Enable Debug",
                         action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument("--allow-duplicates", action=argparse.BooleanOptionalAction,
+                        help="Skip potential duplication test", default=False)
     parser.add_argument("--xmp", metavar="XMP FILE",
                         help="Read metadata from XMP file")
     parser.add_argument("object", help="The Object to process and upload")
@@ -156,6 +163,8 @@ if __name__ == "__main__":
                         "Only one photo allowed if using custom XMP file.")
                 _logger.debug(f"Using external XMP file {_args.xmp}")
                 xmp_file = open(_args.xmp, "r")
-                process_photo(file, _args.offline, _args.nocompress, xmp_file)
+                process_photo(file, _args.tags, _args.offline,
+                              _args.nocompress, xmp_file, check_duplicates=not _args.allow_duplicates)
             else:
-                process_photo(file, _args.offline, _args.nocompress)
+                process_photo(file, _args.tags,
+                              _args.offline, _args.nocompress, check_duplicates=not _args.allow_duplicates)

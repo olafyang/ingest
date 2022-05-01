@@ -23,17 +23,56 @@ class DB:
                                            cursorclass=pymysql.cursors.DictCursor
                                            )
 
+    def commit(self) -> None:
+        """Commit changes
+        """
+        self._connection.commit()
+
     def close(self) -> None:
         """Commits and close the connection
         """
         self._connection.commit()
         self._connection.close()
 
+    def write_tags(self, handle: str, tags: list):
+        """Associate a objet with given tags
+
+        Args:
+            handle (str): handle
+            tags (list): List of Tags containing tag id
+        """
+
+        # Create new tag if not already exist
+        values = ""
+        for i, tag in enumerate(tags):
+            if i != len(tags) - 1:
+                values += f'("{tag}"), '
+            else:
+                values += f'("{tag}")'
+
+        sql = f'INSERT IGNORE INTO `tags` (`id`) VALUES {values};'
+        cursor: Cursor = self._connection.cursor()
+        cursor.execute(sql)
+        self.commit()
+        cursor.close()
+
+        values = ""
+        for i, tag in enumerate(tags):
+            if i != len(tags) - 1:
+                values += f'("{handle}", "{tag}"), '
+            else:
+                values += f'("{handle}", "{tag}")'
+        cursor: Cursor = self._connection.cursor()
+        sql = f'INSERT INTO `obj_tag` (`handle`, `tag`) VALUES {values};'
+        cursor.execute(sql)
+        self.commit()
+        cursor.close()
+
     # Photos
 
-    def count_photo(self, date: date, hdl_prefix: str):
+    def count_handle(self, date: date, hdl_prefix: str):
         cursor: Cursor = self._connection.cursor()
-        sql = f'select count(handle) from photos where handle like "{hdl_prefix}/P{date.isoformat()}%";'
+        sql = f'SELECT count(handle) FROM handles WHERE handle LIKE "{hdl_prefix}/P{date.isoformat()}%" AND idx = 1;'
         cursor.execute(sql)
         res = cursor.fetchone()
         cursor.close()

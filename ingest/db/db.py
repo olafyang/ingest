@@ -128,7 +128,7 @@ class DB:
         # Making column values
         val = ""
         for k, v in photo.__dict__.items():
-            if k == "data":
+            if k == "data" or k == "filepath":
                 continue
             if v is not None:
                 val += f'{k} = "{v}", '
@@ -136,7 +136,7 @@ class DB:
 
         sql = f'INSERT INTO photos SET {val};'
         cursor.execute(sql)
-        print(f'Inserted photo {handle}')
+        _logger.info(f'Inserted photo {handle} to DB')
         cursor.close()
 
     def write_cdn(self, cdn_info: dict):

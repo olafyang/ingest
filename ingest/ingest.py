@@ -32,7 +32,8 @@ def process_photo(path: str, tags: list = None, offline: bool = False, no_compre
 
     if not offline:
         _logger.info("Writing handle record")
-        handle, location = handle_client.register(photo, check_duplicates=check_duplicates)
+        handle, location = handle_client.register(
+            photo, check_duplicates=check_duplicates)
 
         _logger.info("Uploading {} to S3 main bucket {}".format(
             path, _config["S3"]["bucketname"]))
@@ -40,7 +41,8 @@ def process_photo(path: str, tags: list = None, offline: bool = False, no_compre
             f"{handle}.{file_extension}", photo)
 
         _logger.info("Inserting to database")
-        db.write_photo(handle, s3_location, photo, check_duplicate=check_duplicates)
+        db.write_photo(handle, s3_location, photo,
+                       check_duplicate=check_duplicates)
 
         if tags:
             db.write_tags(handle, tags)
@@ -101,6 +103,8 @@ if __name__ == "__main__":
     if _args.debug:
         _logger.setLevel(logging.DEBUG)
         _logger.debug("Debug enabled")
+    else:
+        _logger.setLevel(logging.INFO)
 
     # Validate config and arguments
     if "HANDLE" not in _config:
@@ -155,16 +159,20 @@ if __name__ == "__main__":
         raise NameError("No mode given")
     # Start processing
     for file in files_to_process:
-        if _args.mode == "photo" or _args.mode == "photos":
-            xmp_file = None
-            if _args.xmp:
-                if len(files_to_process) > 1:
-                    raise KeyError(
-                        "Only one photo allowed if using custom XMP file.")
-                _logger.debug(f"Using external XMP file {_args.xmp}")
-                xmp_file = open(_args.xmp, "r")
-                process_photo(file, _args.tags, _args.offline,
-                              _args.nocompress, xmp_file, check_duplicates=not _args.allow_duplicates)
-            else:
-                process_photo(file, _args.tags,
-                              _args.offline, _args.nocompress, check_duplicates=not _args.allow_duplicates)
+        try:
+            if _args.mode == "photo" or _args.mode == "photos":
+                xmp_file = None
+                if _args.xmp:
+                    if len(files_to_process) > 1:
+                        raise KeyError(
+                            "Only one photo allowed if using custom XMP file.")
+                    _logger.debug(f"Using external XMP file {_args.xmp}")
+                    xmp_file = open(_args.xmp, "r")
+                    process_photo(file, _args.tags, _args.offline,
+                                  _args.nocompress, xmp_file, check_duplicates=not _args.allow_duplicates)
+                else:
+                    process_photo(file, _args.tags,
+                                  _args.offline, _args.nocompress, check_duplicates=not _args.allow_duplicates)
+        except exceptions.ObjectDuplicateException:
+            _logger.info(f"Skipping {file}")
+            continue

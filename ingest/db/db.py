@@ -63,7 +63,7 @@ class DB:
             else:
                 values += f'("{handle}", "{tag}")'
         cursor: Cursor = self._connection.cursor()
-        sql = f'INSERT INTO `obj_tag` (`handle`, `tag`) VALUES {values};'
+        sql = f'INSERT INTO `obj_tag` (`handle`, `tag_id`) VALUES {values};'
         cursor.execute(sql)
         self.commit()
         cursor.close()

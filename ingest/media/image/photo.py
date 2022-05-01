@@ -73,7 +73,6 @@ def read_xmp(src: dict) -> dict:
                  "SubjectArea",
                  "SubjectDistanceRange",
                  "SubjectLocation",
-                 "WhiteBalance",
                  "GPSAltitudeRef",
                  "GPSDifferential"
                  ]
@@ -197,7 +196,10 @@ class Photo(StaticImage):
         if filename:
             self.filename = filename
 
-        exif = {}
+        self.content_type = self.data.get_format_mimetype()
+
+        if xmp_file:
+            self.data.info["XML:com.adobe.xmp"] = xmp_file.read()
 
         if "XML:com.adobe.xmp" in self.data.info:
             metadata = read_xmp(self.data.getxmp()[
@@ -230,8 +232,6 @@ class Photo(StaticImage):
                 self.artist = metadata["creator"]
             if "CreatorTool" in metadata_keys:
                 self.software = metadata["CreatorTool"]
-            if "format" in metadata_keys:
-                self.content_type = metadata["format"]
             if "RawFileName" in metadata_keys:
                 self.raw_filename = metadata["RawFileName"]
             if "ExposureMode" in metadata_keys:

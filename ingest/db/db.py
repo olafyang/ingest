@@ -106,7 +106,7 @@ class DB:
                         handle like "%P{handle_date.isoformat()}%"
                         AND (
                             raw_filename = "{photo.raw_filename}"
-                            OR filename = "{photo.filename}"
+                            AND filename = "{photo.filename}"
                         )
                     ) = 1
             ),

@@ -40,7 +40,6 @@ def process_photo(path: str, tags: list = None, offline: bool = False, no_compre
         s3_location = s3io.upload_image(
             f"{handle}.{file_extension}", photo)
 
-        _logger.info("Inserting to database")
         db.write_photo(handle, s3_location, photo,
                        check_duplicate=check_duplicates)
 

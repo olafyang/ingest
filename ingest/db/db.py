@@ -135,8 +135,8 @@ class DB:
         val += f'handle = "{handle}", location = "{location}"'
 
         sql = f'INSERT INTO photos SET {val};'
+        _logger.info(f'Inserting photo {handle} to DB')
         cursor.execute(sql)
-        _logger.info(f'Inserted photo {handle} to DB')
         cursor.close()
 
     def write_cdn(self, cdn_info: dict):

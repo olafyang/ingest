@@ -179,5 +179,5 @@ if __name__ == "__main__":
             _logger.info(f"Skipping {file}")
             skipped_files.append(file)
             continue
-
-    _logger.warn(f"Skipped {len(skipped_files)} files, {str(skipped_files)}")
+    if skipped_files:
+        _logger.warn(f"Skipped {len(skipped_files)} files, {str(skipped_files)}")

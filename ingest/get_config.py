@@ -18,11 +18,19 @@ def _parse_config():
     config = ConfigParser()
 
     _logger.debug("Reading config file")
-    config_file_path = os.path.abspath("config.ini")
+
+    if os.path.isfile(os.path.expanduser("~/.ingest.ini")):
+        config_file_path = os.path.abspath(os.path.expanduser("~/.ingest.ini"))
+    elif os.path.isfile("./config.ini"):
+        config_file_path = os.path.abspath("./config.ini")
+    else:
+        _logger.critical(
+            f"No config file found.")
     config.read(config_file_path)
+    # TODO Valid sections
     if not config.sections():
         _logger.critical(
-            f"No config file found, generating example file at {config_file_path}")
+            f"Config file not valid, generating example file at {config_file_path}")
 
         config["HANDLE"] = {
             "host": "Handle Server REST API endpoint Location",
@@ -59,7 +67,6 @@ def _parse_config():
 
 
 _config: ConfigParser = _parse_config()
-# TODO Validate config file
 
 
 def get_config(scope: ConfigScope = ConfigScope.FULL) -> ConfigParser:

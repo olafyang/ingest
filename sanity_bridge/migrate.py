@@ -45,4 +45,4 @@ for item in photos:
         _sanity_config["dataset"], res.content, res.headers["Content-Type"])
 
     print(f"Creating Photo {handle}")
-    create_photo(handle, asset_id, artist="OLAF YANG")
+    create_photo(handle, asset_id, ["EDI2018YE"], artist="OLAF YANG")

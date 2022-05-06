@@ -39,18 +39,17 @@ def create_photo(handle: str, asset_id: str, tags: list = None,  artist: str = N
 
     if tags:
         pass
-        # FIXME Tags crahing the editdor
-        # tags = create_return_tags(tags)
-        # mutate["create"]["tags"] = list(
-        #     map(lambda e: {"_type": "reference", "_ref": e}, tags))
+        tags = create_return_tags(tags)
+        mutate["create"]["tags"] = list(
+            map(lambda e: {"_type": "reference", "_ref": e}, tags))
     if title:
         mutate["create"]["title"] = title
     if artist:
         mutate["create"]["artist"] = artist
 
-    res = _sanity_client.mutate(
-        _dataset, mutate, visibility="async", return_ids=True)
-    return res
+    res_doc = _sanity_client.mutate(
+        _dataset, mutate, visibility="async", return_ids=True, auto_generate_array_keys=True)
+    return res_doc
 
 
 def create_return_tags(tags: Union[List[Dict[str, str]], List[str]]) -> List[str]:
@@ -81,6 +80,7 @@ def create_return_tags(tags: Union[List[Dict[str, str]], List[str]]) -> List[str
             mutate.append({"createIfNotExists": {
                 "_type": "tag",
                 "_id": tag,
+                "name": tag
             }})
 
     res = _sanity_client.mutate(_dataset, mutate, return_ids=True)["results"]

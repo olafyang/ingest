@@ -28,7 +28,7 @@ class SanityClient:
     def query(self, dataset: str, query):
         pass
 
-    def mutate(self, dataset: str, mutations: Union[list, dict], return_ids: bool = False, return_documents: bool = False, visibility: str = "sync", dry_run: bool = False) -> dict:
+    def mutate(self, dataset: str, mutations: Union[list, dict], return_ids: bool = False, return_documents: bool = False, visibility: str = "sync", dry_run: bool = False, auto_generate_array_keys: bool = False) -> dict:
         if isinstance(mutations, dict):
             if not "mutations" in mutations.keys():
                 mutations = {"mutations": [mutations]}
@@ -45,6 +45,7 @@ class SanityClient:
                                 "returnIds": "true" if return_ids else "false",
                                 "returnDocuments": "true" if return_documents else "false",
                                 "visibility": visibility,
+                                "autoGenerateArrayKeys": "true" if auto_generate_array_keys else "false",
                                 "dryRun": "true" if dry_run else "false"
                             },
                             data=mutatetion_data)

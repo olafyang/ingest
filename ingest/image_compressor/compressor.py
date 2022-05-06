@@ -2,6 +2,7 @@ import io
 from PIL import Image
 import logging
 from ..util import convert_to_mime
+from typing import List, Tuple
 
 _logger = logging.getLogger(__name__)
 _compress_default_options = {
@@ -99,7 +100,7 @@ def save_io(image: Image.Image, img_format: str = "JPEG", quality: int = 85) -> 
     return b
 
 
-def compress(image: Image.Image, options: dict = None) -> list:
+def compress(image: Image.Image, options: dict = None) -> List[Tuple[io.BytesIO, dict]]:
     """Compress and resize a singe PIL image based on optiopns
 
     Args:

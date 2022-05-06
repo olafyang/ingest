@@ -1,7 +1,9 @@
 from .sanity import SanityClient
 from .get_config import get_config, ConfigScope
 from typing import List, Dict, Union
-from pprint import pprint
+from ingest.media.image.photo import Photo
+from ingest.image_compressor import compressor
+from . import util
 
 _config = get_config(ConfigScope.SANITY)
 _sanity_client = SanityClient(_config["project_id"], _config["token"])
@@ -10,7 +12,14 @@ _dataset = _config["dataset"]
 # Create photo from Photo Object
 
 
-def create_photo(handle: str, asset_id: str, tags: list = None,  artist: str = None, title: str = None) -> dict:
+def create_photo_from_object(handle: str, photo: Photo, tags: List[str] = None, artist: str = None, title: str = None):
+    image_data = compressor.save_io(photo.data)
+    asset_id = _sanity_client.upload_image(
+        _dataset, image_data, util.convert_to_mime(photo.data.format))
+    create_photo(handle, asset_id, tags, artist, title)
+
+
+def create_photo(handle: str, asset_id: str, tags: List[str] = None, artist: str = None, title: str = None) -> dict:
     """Create an entry in the Photo table
 
     Args:
@@ -38,7 +47,6 @@ def create_photo(handle: str, asset_id: str, tags: list = None,  artist: str = N
     }
 
     if tags:
-        pass
         tags = create_return_tags(tags)
         mutate["create"]["tags"] = list(
             map(lambda e: {"_type": "reference", "_ref": e}, tags))

@@ -13,6 +13,7 @@ from .image_compressor.compressor import compress
 import re
 from uuid import uuid1
 from . import util, exceptions
+from . import sanity_ingest
 
 
 _HIDDEN_FILE_PATTERN = re.compile(r".+[\.].+")
@@ -22,13 +23,28 @@ logging.basicConfig(stream=sys.stdout)
 _logger = logging.getLogger("ingest")
 
 
-def process_photo(path: str, tags: list = None, offline: bool = False, no_compress: bool = False, xmp_file: TextIOWrapper = None, check_duplicates: bool = True) -> None:
+def process_photo(path: str, tags: list = None, offline: bool = False, no_compress: bool = False, xmp_file: TextIOWrapper = None, check_duplicates: bool = True, use_sanity: bool = False) -> None:
+    """Process a Photo object
+
+    Args:
+        path (str): Path of the photo object on the machine
+        tags (list, optional): tags to associate with the photo, automatically transform all letters to upper case. Defaults to None.
+        offline (bool, optional): disable file upload and database insert. Defaults to False.
+        no_compress (bool, optional): disable compress image. Defaults to False.
+        xmp_file (TextIOWrapper, optional): read metadata from a xmp file. Defaults to None.
+        check_duplicates (bool, optional): check for possible duplications in the system. Defaults to True.
+        use_sanity (bool, optional): upload the photo to sanity,io. Defaults to False.
+    """
+    # TODO add support for non local photo source (Ingest by passing bytes or Buffer)
     _logger.info(f"Start processing {path}")
     photo = Photo(path, xmp_file=xmp_file)
     file_extension = photo.data.format.lower()
 
     db = DB()
     handle_client = Handle(db)
+
+    if tags:
+        tags = list(map(lambda tag: tag.upper(), tags))
 
     if not offline:
         _logger.info("Writing handle record")
@@ -45,6 +61,9 @@ def process_photo(path: str, tags: list = None, offline: bool = False, no_compre
 
         if tags:
             db.write_tags(handle, tags)
+
+        if use_sanity:
+            sanity_ingest.create_photo_from_object(handle, photo, tags)
     else:
         _logger.info('"offline" selected, skipping upload"')
 
@@ -75,6 +94,8 @@ def process_photo(path: str, tags: list = None, offline: bool = False, no_compre
 if __name__ == "__main__":
     # Parse command line argument
     parser = argparse.ArgumentParser()
+    parser.add_argument("--sanity", action=argparse.BooleanOptionalAction,
+                        help="Use Sanity.io", default=False)
     parser.add_argument("--nocompress",
                         action=argparse.BooleanOptionalAction, help="Do NOT create CDN version")
     parser.add_argument("--offline",
@@ -92,6 +113,7 @@ if __name__ == "__main__":
                         action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--allow-duplicates", action=argparse.BooleanOptionalAction,
                         help="Skip potential duplication test", default=False)
+    # TODO add artist and title options
     parser.add_argument("--xmp", metavar="XMP FILE",
                         help="Read metadata from XMP file")
     parser.add_argument("object", help="The Object to process and upload")
@@ -170,13 +192,14 @@ if __name__ == "__main__":
                     _logger.debug(f"Using external XMP file {_args.xmp}")
                     xmp_file = open(_args.xmp, "r")
                     process_photo(file, _args.tags, _args.offline,
-                                  _args.nocompress, xmp_file, check_duplicates=not _args.allow_duplicates)
+                                  _args.nocompress, xmp_file, check_duplicates=not _args.allow_duplicates, use_sanity=_args.sanity)
                 else:
                     process_photo(file, _args.tags,
-                                  _args.offline, _args.nocompress, check_duplicates=not _args.allow_duplicates)
+                                  _args.offline, _args.nocompress, check_duplicates=not _args.allow_duplicates, use_sanity=_args.sanity)
         except exceptions.ObjectDuplicateException:
             _logger.info(f"Skipping {file}")
             skipped_files.append(file)
             continue
     if skipped_files:
-        _logger.warn(f"Skipped {len(skipped_files)} files, {str(skipped_files)}")
+        _logger.warn(
+            f"Skipped {len(skipped_files)} files, {str(skipped_files)}")

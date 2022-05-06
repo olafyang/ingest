@@ -2,7 +2,9 @@ from io import BytesIO
 import json
 import requests
 from typing import Union
-from pprint import pprint
+import logging
+
+_logger = logging.getLogger(__name__)
 
 
 class SanityClientException(Exception):
@@ -36,6 +38,8 @@ class SanityClient:
             mutations = {"mutations": mutations}
 
         mutatetion_data = json.dumps(mutations)
+        _logger.debug(
+            "Sending mutation request, using dataset {}".format(dataset))
         res = requests.post(f"{self._url}/data/mutate/{dataset}",
                             headers={
                                 "Authorization": f"Bearer {self._auth_token}",
@@ -72,6 +76,8 @@ class SanityClient:
             if isinstance(data, BytesIO):
                 data = data.read()
 
+        _logger.debug(
+            "Uploading image to sanity api asset endpoint, using dataset {}".format(dataset))
         res = requests.post(f"{self._url}/assets/images/{dataset}",
                             headers={
                                 "Authorization": f"Bearer {self._auth_token}",

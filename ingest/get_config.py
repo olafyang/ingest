@@ -12,6 +12,7 @@ class ConfigScope(Enum):
     DB = 3
     HANDLE = 4
     FULL = 5
+    SANITY = 6
 
 
 def _parse_config():
@@ -59,6 +60,10 @@ def _parse_config():
             "bucketname": "CDN Bucket Name",
             "cdn_endpoint": "CDN Endpoint"
         }
+        config["SANITY"] = {
+            "token": "Sanity token",
+            "project_id": "Project id"
+        }
         with open(config_file_path, "w") as config_file:
             config.write(config_file)
             exit()
@@ -80,5 +85,7 @@ def get_config(scope: ConfigScope = ConfigScope.FULL) -> ConfigParser:
         return _config["S3"]
     elif scope == ConfigScope.S3_CDN:
         return _config["S3_CDN"]
+    elif scope == ConfigScope.SANITY:
+        return _config["SANITY"]
 
     return None

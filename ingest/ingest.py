@@ -63,7 +63,7 @@ def process_photo(path: str, tags: list = None, offline: bool = False, no_compre
             db.write_tags(handle, tags)
 
         if use_sanity:
-            sanity_ingest.create_photo_from_object(handle, photo, tags)
+            sanity_ingest.create_photo_from_object(handle, photo, tags, photo.artist)
     else:
         _logger.info('"offline" selected, skipping upload"')
 
@@ -119,6 +119,10 @@ if __name__ == "__main__":
     parser.add_argument("object", help="The Object to process and upload")
 
     _args = parser.parse_args()
+
+    if _args.tags:
+        if True in list(map(lambda x: len(x) > 25, _args.tags)):
+            raise KeyError("Length of tag id can not exceed 25")
 
     # Toggle logging mode
     if _args.debug:

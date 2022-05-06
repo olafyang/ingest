@@ -16,7 +16,7 @@ def create_photo_from_object(handle: str, photo: Photo, tags: List[str] = None, 
     image_data = compressor.save_io(photo.data)
     asset_id = _sanity_client.upload_image(
         _dataset, image_data, util.convert_to_mime(photo.data.format))
-    create_photo(handle, asset_id, tags, artist, title, artist=photo.artist)
+    create_photo(handle, asset_id, tags, artist, title)
 
 
 def create_photo(handle: str, asset_id: str, tags: List[str] = None, artist: str = None, title: str = None) -> dict:

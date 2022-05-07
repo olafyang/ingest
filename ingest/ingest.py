@@ -150,7 +150,12 @@ if __name__ == "__main__":
     # Get files to process
     path = os.path.abspath(_args.object)
     files_to_process = []
+
+    if not os.path.exists(path):
+        raise KeyError(f"Path {path} does not exist")
+
     if os.path.isfile(path):
+        print("is file")
         _logger.debug(f"Adding file {path} to queue")
         files_to_process.append(path)
     else:

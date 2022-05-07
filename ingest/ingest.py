@@ -47,12 +47,9 @@ def process_photo(path: str, tags: list = None, offline: bool = False, no_compre
         tags = list(map(lambda tag: tag.upper(), tags))
 
     if not offline:
-        _logger.info("Writing handle record")
         handle, location = handle_client.register(
             photo, check_duplicates=check_duplicates)
 
-        _logger.info("Uploading {} to S3 main bucket {}".format(
-            path, _config["S3"]["bucketname"]))
         s3_location = s3io.upload_image(
             f"{handle}.{file_extension}", photo)
 

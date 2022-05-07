@@ -2,6 +2,8 @@ from io import BytesIO, TextIOWrapper
 from PIL import Image, ExifTags
 from typing import Union
 from datetime import date, time, datetime
+from libxmp.utils import object_to_dict
+from libxmp.core import XMPMeta
 import re
 import logging
 import os
@@ -9,6 +11,7 @@ from .image import StaticImage
 import sys
 
 
+_property_name_pattern = re.compile(r"(.*:.+?)(?=(\b))")
 _date_pattern = re.compile(r"^(\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d)")
 _logger = logging.getLogger(__name__)
 
@@ -20,7 +23,7 @@ def read_xmp(src: dict) -> dict:
     :param src dictionary of xmp data
 
 
-    Overview of namespaces and value types in exif_raw if using 
+    Overview of namespaces and value types in exif_raw if using xmp:
         Documentations:
             https://developer.adobe.com/xmp/docs/XMPNamespaces/ for XMP
             https://www.dublincore.org/specifications/dublin-core/dcmi-terms/ for DCMI Metadata Terms
@@ -34,89 +37,91 @@ def read_xmp(src: dict) -> dict:
             'http://ns.adobe.com/tiff/1.0/': TIFF namespace (camera name, camera model)
             'http://ns.adobe.com/exif/1.0/': EXIF namespace (exif data, exposure time, aperature, exposure program, metering mode...)
     """
-    _dateparse = ["DateTimeDigitized", "DateTimeOriginal",
-                  "CreateDate", "MetadataDate", "ModifyDate"]
-    _intparse = ["BlueHue",
-                 "BlueSaturation",
-                 "Brightness",
-                 "ChromaticAberrationB",
-                 "ChromaticAberrationR",
-                 "ColorNoiseReduction",
-                 "Contrast",
-                 "CropUnits",
-                 "GreenHue",
-                 "GreenSaturation",
-                 "LuminanceSmoothing",
-                 "RedHue",
-                 "RedSaturation",
-                 "Saturation",
-                 "Shadows",
-                 "ShadowTint",
-                 "Sharpness",
-                 "Temperature",
-                 "Tint",
-                 "VignetteAmount",
-                 "VignetteMidpoint",
-                 "Contrast",
-                 "CustomRendered",
-                 "ExposureMode",
-                 "ExposureProgram",
-                 "FileSource",
-                 "FocalLengthIn35mmFilm",
-                 "FocalPlaneResolutionUnit",
-                 "GainControl",
-                 "LightSource",
-                 "SceneCaptureType",
-                 "SceneType",
-                 "SensingMethod",
-                 "Sharpness",
-                 "SubjectArea",
-                 "SubjectDistanceRange",
-                 "SubjectLocation",
-                 "GPSAltitudeRef",
-                 "GPSDifferential"
-                 ]
-    _floatparse = ["CropTop",
-                   "CropLeft",
-                   "CropBottom",
-                   "CropRight",
-                   "CropAngle",
-                   "CropWidth",
-                   "CropHeight",
-                   "Exposure"
-                   ]
-    _boolparse = ["AutoBrightness",
-                  "AutoContrast",
-                  "AutoExposure",
-                  "AutoShadows",
-                  "HasCrop",
-                  "HasSettings"
-                  ]
+    _dateparse = ["exif:DateTimeDigitized", "exif:DateTimeOriginal",
+                  "xmp:CreateDate", "xmp:MetadataDate", "xmp:ModifyDate"]
+    _intparse = ["crs:BlueHue",
+                 "crs:BlueSaturation",
+                 "crs:Brightness",
+                 "crs:ChromaticAberrationB",
+                 "crs:ChromaticAberrationR",
+                 "crs:ColorNoiseReduction",
+                 "crs:Contrast",
+                 "crs:CropUnits",
+                 "crs:GreenHue",
+                 "crs:GreenSaturation",
+                 "crs:LuminanceSmoothing",
+                 "crs:RedHue",
+                 "crs:RedSaturation",
+                 "crs:Saturation",
+                 "crs:Shadows",
+                 "crs:ShadowTint",
+                 "crs:Sharpness",
+                 "crs:Temperature",
+                 "crs:Tint",
+                 "crs:VignetteAmount",
+                 "crs:VignetteMidpoint",
+                 "exif:Contrast",
+                 "exif:CustomRendered",
+                 "exif:ExposureMode",
+                 "exif:ExposureProgram",
+                 "exif:FileSource",
+                 "exif:FocalLengthIn35mmFilm",
+                 "exif:FocalPlaneResolutionUnit",
+                 "exif:GainControl",
+                 "exif:ISOSpeedRatings",
+                 "exif:LightSource",
+                 "exif:SceneCaptureType",
+                 "exif:SceneType",
+                 "exif:SensingMethod",
+                 "exif:Sharpness",
+                 "exif:SubjectArea",
+                 "exif:SubjectDistanceRange",
+                 "exif:SubjectLocation",
+                 "exif:GPSAltitudeRef",
+                 "exif:GPSDifferential"]
+    _floatparse = ["crs:CropTop",
+                   "crs:CropLeft",
+                   "crs:CropBottom",
+                   "crs:CropRight",
+                   "crs:CropAngle",
+                   "crs:CropWidth",
+                   "crs:CropHeight",
+                   "crs:Exposure",
+                   ""]
+    _boolparse = ["crs:AutoBrightness",
+                  "crs:AutoContrast",
+                  "crs:AutoExposure",
+                  "crs:AutoShadows",
+                  "crs:HasCrop",
+                  "crs:HasSettings",
+                  ""]
 
     out = {}
 
     for k, v in src.items():
-        if v == "" or v is None:
-            continue
+        for element in v:
+            # property_name = element[0]
+            property_name = _property_name_pattern.match(element[0]).group(1)
+            property_value = element[1]
 
-        # Cast string to corrisponding type
-        if k in _dateparse:
-            match = _date_pattern.match(v)
-            if not match:
+            # TODO perserve entry with multiple values: e.g. History[1]
+            if property_value == "" or property_value is None:
                 continue
-            v = datetime.fromisoformat(match.group(1))
-        elif k in _intparse:
-            v = int(v)
-        elif k in _floatparse:
-            v = float(v)
-        elif k in _boolparse:
-            v = bool(v)
-        elif k == "ISOSpeedRatings":
-            v = int(v["Seq"]["li"])
-        elif k == "creator":
-            v = v["Seq"]["li"]
 
-        out[k] = v
+            # Cast string to corrisponding type
+            if property_name in _dateparse:
+                match = _date_pattern.match(property_value)
+                if not match:
+                    continue
+                property_value = datetime.fromisoformat(match.group(1))
+            elif property_name in _intparse:
+                property_value = int(property_value)
+            elif property_name in _floatparse:
+                property_value = float(property_value)
+            elif property_name in _boolparse:
+                property_value = bool(property_value)
+
+            out[property_name] = property_value
     return out
 
 
@@ -197,47 +202,74 @@ class Photo(StaticImage):
         if filename:
             self.filename = filename
 
+        exif = {}
+
         self.content_type = self.data.get_format_mimetype()
 
         if xmp_file:
             self.data.info["XML:com.adobe.xmp"] = xmp_file.read()
 
-        if "XML:com.adobe.xmp" in self.data.info:
-            metadata = read_xmp(self.data.getxmp()[
-                                "xmpmeta"]["RDF"]["Description"])
-            metadata_keys = metadata.keys()
+        # Using XMP
+        _logger.debug("Metadata in XMP format")
+        if xmp_file:
+            xmp_meta = XMPMeta(xmp_str=xmp_file.read())
+        else:
+            xmp_meta = XMPMeta(xmp_str=str(
+                self.data.info["XML:com.adobe.xmp"]))
+        metadata = read_xmp(object_to_dict(xmp_meta))
 
-            _logger.debug("Setting attributes to available metadata")
-            if "CreateDate" in metadata_keys:
-                self.date_capture = metadata["CreateDate"].date()
-                self.time_capture = metadata["CreateDate"].time()
-            if "ModifyDate" in metadata_keys:
-                self.date_export = metadata["ModifyDate"].date()
-                self.time_export = metadata["ModifyDate"].time()
-            if "ExposureTime" in metadata_keys:
-                self.shutter = metadata["ExposureTime"]
-            if "FNumber" in metadata_keys:
-                self.aperture = metadata["FNumber"].split("/")[0]
-            if "FocalLength" in metadata_keys:
-                fl = metadata["FocalLength"].split("/")
-                self.focal_length = int(int(fl[0]) / int(fl[1]))
-            if "FocalLengthIn35mmFilm" in metadata_keys:
-                self.focal_length_35 = int(metadata["FocalLengthIn35mmFilm"])
-            if "ISOSpeedRatings" in metadata_keys:
-                self.iso = int(metadata["ISOSpeedRatings"])
-            if "Make" in metadata_keys:
-                self.camera_maker = metadata["Make"]
-            if "Model" in metadata_keys:
-                self.camera_model = metadata["Model"]
-            if "creator" in metadata_keys:
-                self.artist = metadata["creator"]
-            if "CreatorTool" in metadata_keys:
-                self.software = metadata["CreatorTool"]
-            if "RawFileName" in metadata_keys:
-                self.raw_filename = metadata["RawFileName"]
-            if "ExposureMode" in metadata_keys:
-                self.exposure_mode = metadata["ExposureMode"]
-            if "ExposureProgram" in metadata_keys:
-                self.exposure_program = metadata["ExposureProgram"]
-            if "MeteringMode" in metadata_keys:
-                self.metering_mode = metadata["MeteringMode"]
+        _logger.debug("Setting attributes to available metadata")
+        metadata_keys = metadata.keys()
+        if "xmp:CreateDate" in metadata_keys:
+            self.date_capture = metadata["xmp:CreateDate"].date()
+            self.time_capture = metadata["xmp:CreateDate"].time()
+        if "xmp:ModifyDate" in metadata_keys:
+            self.date_export = metadata["xmp:ModifyDate"].date()
+            self.time_export = metadata["xmp:ModifyDate"].time()
+        if "exif:ExposureTime" in metadata_keys:
+            self.shutter = metadata["exif:ExposureTime"]
+        if "exif:FNumber" in metadata_keys:
+            self.aperture = metadata["exif:FNumber"].split("/")[0]
+        if "exif:FocalLength" in metadata_keys:
+            fl = metadata["exif:FocalLength"].split("/")
+            self.focal_length = int(int(fl[0]) / int(fl[1]))
+        if "exif:FocalLengthIn35mmFilm" in metadata_keys:
+            self.focal_length_35 = int(metadata["exif:FocalLengthIn35mmFilm"])
+        if "exif:ISOSpeedRatings" in metadata_keys:
+            self.iso = int(metadata["exif:ISOSpeedRatings"])
+        if "tiff:Make" in metadata_keys:
+            self.camera_maker = metadata["tiff:Make"]
+        if "tiff:Model" in metadata_keys:
+            self.camera_model = metadata["tiff:Model"]
+        if "dc:creator" in metadata_keys:
+            self.artist = metadata["dc:creator"]
+        if "xmp:CreatorTool" in metadata_keys:
+            self.software = metadata["xmp:CreatorTool"]
+        if "crs:RawFileName" in metadata_keys:
+            self.raw_filename = metadata["crs:RawFileName"]
+        if "exif:ExposureMode" in metadata_keys:
+            self.exposure_mode = metadata["exif:ExposureMode"]
+        if "exif:ExposureProgram" in metadata_keys:
+            self.exposure_program = metadata["exif:ExposureProgram"]
+        if "exif:MeteringMode" in metadata_keys:
+            self.metering_mode = metadata["exif:MeteringMode"]
+
+        # Using PIL
+        # img_exif = self.photo.getexif()
+        # for k, v in img_exif.items():
+        #     print(k)
+        #     if k in ExifTags.TAGS:
+        #         tag = ExifTags.TAGS[k]
+        #         if tag == "Make":
+        #             self.camera_maker = v
+        #         if tag == "Model":
+        #             self.camera_model = v
+        #         if tag == "Software":
+        #             self.software = v
+        #         if tag == "DateTime":
+        #             dt = datetime.strptime(v, "%Y:%m:%d %H:%M:%S")
+        #             self.date_capture = dt.date()
+        #             self.time_capture = dt.time()
+        #         exif[ExifTags.TAGS[k]] = v
+        #
+        # print(exif)

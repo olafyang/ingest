@@ -59,7 +59,7 @@ class Handle():
                 if res:
                     try:
                         obj_date = date(
-                            res.group(1), res.group(2), res.group(3))
+                            int(res.group(1)), int(res.group(2)), int(res.group(3)))
                     except ValueError:
                         obj_date = date.today()
             else:

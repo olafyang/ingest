@@ -63,7 +63,8 @@ def process_photo(path: str, tags: list = None, offline: bool = False, no_compre
             db.write_tags(handle, tags)
 
         if use_sanity:
-            sanity_ingest.create_photo_from_object(handle, photo, tags, photo.artist)
+            sanity_ingest.create_photo_from_object(
+                handle, photo, tags, photo.artist)
     else:
         _logger.info('"offline" selected, skipping upload"')
 

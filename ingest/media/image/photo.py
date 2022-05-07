@@ -207,6 +207,7 @@ class Photo(StaticImage):
         self.content_type = self.data.get_format_mimetype()
 
         # Using XMP
+        xmp_meta = None
         _logger.debug("Metadata in XMP format")
         if xmp_file:
             xmp_meta = XMPMeta(xmp_str=xmp_file.read())

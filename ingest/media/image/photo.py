@@ -210,46 +210,48 @@ class Photo(StaticImage):
         _logger.debug("Metadata in XMP format")
         if xmp_file:
             xmp_meta = XMPMeta(xmp_str=xmp_file.read())
-        else:
+        elif "XML:com.adobe.xmp" in self.data.info.keys():
             xmp_meta = XMPMeta(xmp_str=str(
                 self.data.info["XML:com.adobe.xmp"]))
-        metadata = read_xmp(object_to_dict(xmp_meta))
 
-        _logger.debug("Setting attributes to available metadata")
-        metadata_keys = metadata.keys()
-        if "xmp:CreateDate" in metadata_keys:
-            self.date_capture = metadata["xmp:CreateDate"].date()
-            self.time_capture = metadata["xmp:CreateDate"].time()
-        if "xmp:ModifyDate" in metadata_keys:
-            self.date_export = metadata["xmp:ModifyDate"].date()
-            self.time_export = metadata["xmp:ModifyDate"].time()
-        if "exif:ExposureTime" in metadata_keys:
-            self.shutter = metadata["exif:ExposureTime"]
-        if "exif:FNumber" in metadata_keys:
-            self.aperture = metadata["exif:FNumber"].split("/")[0]
-        if "exif:FocalLength" in metadata_keys:
-            fl = metadata["exif:FocalLength"].split("/")
-            self.focal_length = int(int(fl[0]) / int(fl[1]))
-        if "exif:FocalLengthIn35mmFilm" in metadata_keys:
-            self.focal_length_35 = int(metadata["exif:FocalLengthIn35mmFilm"])
-        if "exif:ISOSpeedRatings" in metadata_keys:
-            self.iso = int(metadata["exif:ISOSpeedRatings"])
-        if "tiff:Make" in metadata_keys:
-            self.camera_maker = metadata["tiff:Make"]
-        if "tiff:Model" in metadata_keys:
-            self.camera_model = metadata["tiff:Model"]
-        if "dc:creator" in metadata_keys:
-            self.artist = metadata["dc:creator"]
-        if "xmp:CreatorTool" in metadata_keys:
-            self.software = metadata["xmp:CreatorTool"]
-        if "crs:RawFileName" in metadata_keys:
-            self.raw_filename = metadata["crs:RawFileName"]
-        if "exif:ExposureMode" in metadata_keys:
-            self.exposure_mode = metadata["exif:ExposureMode"]
-        if "exif:ExposureProgram" in metadata_keys:
-            self.exposure_program = metadata["exif:ExposureProgram"]
-        if "exif:MeteringMode" in metadata_keys:
-            self.metering_mode = metadata["exif:MeteringMode"]
+        if xmp_meta:
+            metadata = read_xmp(object_to_dict(xmp_meta))
+            _logger.debug("Setting attributes to available metadata")
+            metadata_keys = metadata.keys()
+            if "xmp:CreateDate" in metadata_keys:
+                self.date_capture = metadata["xmp:CreateDate"].date()
+                self.time_capture = metadata["xmp:CreateDate"].time()
+            if "xmp:ModifyDate" in metadata_keys:
+                self.date_export = metadata["xmp:ModifyDate"].date()
+                self.time_export = metadata["xmp:ModifyDate"].time()
+            if "exif:ExposureTime" in metadata_keys:
+                self.shutter = metadata["exif:ExposureTime"]
+            if "exif:FNumber" in metadata_keys:
+                self.aperture = metadata["exif:FNumber"].split("/")[0]
+            if "exif:FocalLength" in metadata_keys:
+                fl = metadata["exif:FocalLength"].split("/")
+                self.focal_length = int(int(fl[0]) / int(fl[1]))
+            if "exif:FocalLengthIn35mmFilm" in metadata_keys:
+                self.focal_length_35 = int(
+                    metadata["exif:FocalLengthIn35mmFilm"])
+            if "exif:ISOSpeedRatings" in metadata_keys:
+                self.iso = int(metadata["exif:ISOSpeedRatings"])
+            if "tiff:Make" in metadata_keys:
+                self.camera_maker = metadata["tiff:Make"]
+            if "tiff:Model" in metadata_keys:
+                self.camera_model = metadata["tiff:Model"]
+            if "dc:creator" in metadata_keys:
+                self.artist = metadata["dc:creator"]
+            if "xmp:CreatorTool" in metadata_keys:
+                self.software = metadata["xmp:CreatorTool"]
+            if "crs:RawFileName" in metadata_keys:
+                self.raw_filename = metadata["crs:RawFileName"]
+            if "exif:ExposureMode" in metadata_keys:
+                self.exposure_mode = metadata["exif:ExposureMode"]
+            if "exif:ExposureProgram" in metadata_keys:
+                self.exposure_program = metadata["exif:ExposureProgram"]
+            if "exif:MeteringMode" in metadata_keys:
+                self.metering_mode = metadata["exif:MeteringMode"]
 
         # Using PIL
         # img_exif = self.photo.getexif()

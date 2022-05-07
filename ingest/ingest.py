@@ -155,7 +155,6 @@ if __name__ == "__main__":
         raise KeyError(f"Path {path} does not exist")
 
     if os.path.isfile(path):
-        print("is file")
         _logger.debug(f"Adding file {path} to queue")
         files_to_process.append(path)
     else:

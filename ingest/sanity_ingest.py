@@ -4,10 +4,12 @@ from typing import List, Dict, Union
 from ingest.media.image.photo import Photo
 from ingest.image_compressor import compressor
 from . import util
+import logging
 
 _config = get_config(ConfigScope.SANITY)
 _sanity_client = SanityClient(_config["project_id"], _config["token"])
 _dataset = _config["dataset"]
+_logger = logging.getLogger(__name__)
 
 # Create photo from Photo Object
 
@@ -55,6 +57,7 @@ def create_photo(handle: str, asset_id: str, tags: List[str] = None, artist: str
     if artist:
         mutate["create"]["artist"] = artist
 
+    _logger.info(f"Inserting to sanity dataset {_dataset}")
     res_doc = _sanity_client.mutate(
         _dataset, mutate, visibility="async", return_ids=True, auto_generate_array_keys=True)
     return res_doc

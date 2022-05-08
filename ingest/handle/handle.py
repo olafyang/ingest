@@ -100,7 +100,8 @@ class Handle():
 
         _logger.info(f'Creating Handle "{handle}"')
         if location is None:
-            location = f"{util.get_endpoint(obj)}/{handle}"
+            location = "{}/view/{}".format(util.get_endpoint(obj),
+                                           handle.split("/")[1])
 
         self._handle_client.register_handle(handle, location)
         _logger.info(f'Handle "{handle}" created! Pointing to "{location}"')

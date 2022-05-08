@@ -17,10 +17,13 @@ _logger = logging.getLogger(__name__)
 
 
 def read_xmp(src: dict) -> dict:
-    """
-    Read a dictionary of xmp data and return parsed, type casted data
+    """Convert values of xmp data to their native python typing
 
-    :param src dictionary of xmp data
+    Args:
+        src (dict): dictionary of xmp data
+
+    Returns:
+        dict: Dictionary containg the metadata of the xmp string
 
 
     Overview of namespaces and value types in exif_raw if using xmp:
@@ -178,11 +181,15 @@ class Photo(StaticImage):
     filename: str = None
 
     def __init__(self, data: Union[str, Image.Image, BytesIO], title: str = None, filename: str = None, xmp_file: TextIOWrapper = None):
-        """Initialize a Photo class, metadata such as exif will be read from the data
+        """Constructor of a Photo class
 
-        :param d Data of the photo, other metadata will be read from this
-        :param title Optional Title of the photo
+        Args:
+            data (Union[str, Image.Image, BytesIO]): Either the location of the file, A PIL Image Class or data in BytesIO
+            title (str, optional): The optional title for the photo. Defaults to None.
+            filename (str, optional): Filename of the photo, required for duplication check if data is of type BytesIO or Image. Defaults to None.
+            xmp_file (TextIOWrapper, optional): Custom XMP file to read metadata from. Defaults to None.
         """
+
         if isinstance(data, str) or isinstance(data, BytesIO):
             _logger.debug(
                 f"data is of type {type(data)}, attempting to open as PIL.Image.Image")
@@ -196,11 +203,9 @@ class Photo(StaticImage):
             if not filename:
                 _logger.critical("Filename required")
                 sys.exit(1)
+            self.filename = filename
 
         super(Photo, self).__init__(data, title)
-
-        if filename:
-            self.filename = filename
 
         exif = {}
 

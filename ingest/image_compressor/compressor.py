@@ -110,6 +110,7 @@ def compress(image: Image.Image, options: dict = None) -> List[Tuple[io.BytesIO,
     Returns:
         list: A list containg both output images and it's information such as size and format in tuple, (data: BytesIO, info: dict)
     """
+    # TODO What to do with image with alpha channel??
     if options is None:
         options = _compress_default_options
 

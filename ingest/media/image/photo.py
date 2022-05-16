@@ -212,6 +212,7 @@ class Photo(StaticImage):
         self.content_type = self.data.get_format_mimetype()
 
         # Using XMP
+        # TODO investigate output from new adobe lightroom
         xmp_meta = None
         _logger.debug("Metadata in XMP format")
         if xmp_file:

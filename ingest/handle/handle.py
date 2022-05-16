@@ -62,6 +62,8 @@ class Handle():
                             int(res.group(1)), int(res.group(2)), int(res.group(3)))
                     except ValueError:
                         obj_date = date.today()
+                else:
+                    obj_date = date.today()
             else:
                 obj_date = date.today()
 

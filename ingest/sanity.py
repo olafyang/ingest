@@ -27,8 +27,20 @@ class SanityClient:
         else:
             self._url = f"https://{project_id}.api.sanity.io/{api_version}"
 
-    def query(self, dataset: str, query):
-        pass
+    def query(self, dataset: str, query: str) -> Union[None, list]:
+        res = requests.get(f"{self._url}/data/query/{dataset}",
+                           headers={
+                               "Authorization": f"Bearer {self._auth_token}",
+                               "Content-Type": "application/json"
+                           },
+                           params={
+                               "query": query
+                           })
+
+        res_json = res.json()
+        if len(res_json["result"]) == 0:
+            return None
+        return res.json()["result"]
 
     def mutate(self, dataset: str, mutations: Union[list, dict], return_ids: bool = False, return_documents: bool = False, visibility: str = "sync", dry_run: bool = False, auto_generate_array_keys: bool = False) -> dict:
         if isinstance(mutations, dict):

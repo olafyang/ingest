@@ -98,8 +98,6 @@ if __name__ == "__main__":
                         action=argparse.BooleanOptionalAction, help="Do NOT create CDN version")
     parser.add_argument("--offline",
                         action=argparse.BooleanOptionalAction, help="Do NOT write to database and S3", default=False)
-    parser.add_argument("-m", "--mode", metavar="MODE", required=True,
-                        help="Specify the mode to use to process data", choices=["photo", "photos"])
     parser.add_argument(
         "-t", "--tag", action=argparse._AppendAction, help="Set tag", dest="tags")
     # Recursivly process files
@@ -114,6 +112,7 @@ if __name__ == "__main__":
     # TODO add artist and title options
     parser.add_argument("--xmp", metavar="XMP FILE",
                         help="Read metadata from XMP file")
+    parser.add_argument("mode", help="Media type", choices=["photo", "photos"])
     parser.add_argument("object", help="The Object to process and upload")
 
     _args = parser.parse_args()

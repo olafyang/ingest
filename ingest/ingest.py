@@ -82,7 +82,9 @@ def process_photo(path: str, tags: list = None, offline: bool = False, no_compre
             item[1]["cdn_key"] = str(cdn_key)
             item[1]["location"] = "{}/{}".format(
                 _config["S3_CDN"]["cdn_endpoint"], cdn_key)
-            db.write_cdn(item[1])
+            
+            if not offline:
+                db.write_cdn(item[1])
     else:
         _logger.info('"nocompress" selected, skipping compress')
 
